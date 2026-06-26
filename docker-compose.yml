@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-neuronops}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-neuronops_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER:-neuronops}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-neuronops_db}
+      - DJANGO_SETTINGS_MODULE=neuronops.settings
+    depends_on:
+      - db
+    volumes:
+      - ./backend:/app
+
+  processor:
+    build:
+      context: ./backend
+    command: python processor.py
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER:-neuronops}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-neuronops_db}
+    depends_on:
+      - db
+      - backend
+    volumes:
+      - ./backend:/app
+
+  telemetry:
+    build:
+      context: ./backend
+    command: python telemetry_generator.py
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER:-neuronops}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-neuronops_db}
+    depends_on:
+      - db
+      - backend
+    volumes:
+      - ./backend:/app
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8000/api
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+
+volumes:
+  pgdata:
+
