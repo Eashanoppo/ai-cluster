@@ -34,7 +34,7 @@ scratch/
 .agents/
 .rules/
 .runtime/
-designs/
+
 AGENTS.md
 component.md
 implementation_plan.md
