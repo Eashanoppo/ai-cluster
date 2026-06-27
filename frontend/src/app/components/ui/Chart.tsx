@@ -7,16 +7,21 @@ import { pollPredictions } from '../../actions/sentinel';
 
 const SentinelChartInner = dynamic(
   () => import('./SentinelChartInner'),
-  { ssr: false, loading: () => <div className="h-full w-full bg-background border border-border animate-pulse flex items-center justify-center font-mono text-xs text-text-secondary uppercase">Syncing.Telemetry...</div> }
+  { ssr: false, loading: () => <div className="h-full w-full bg-white border border-gray-100 rounded-2xl animate-pulse flex items-center justify-center font-mono text-xs text-gray-400 uppercase tracking-wider">Syncing Telemetry...</div> }
 );
 
 export function SentinelChart({ data }: { data: any[] }) {
-  const [chartData, setChartData] = useState(() => 
-    data.map((d, i) => ({
-      time: `T-${10-i}s`,
-      probability: Math.min(100, Math.max(0, d.failure_probability * 100))
-    }))
-  );
+  const [chartData, setChartData] = useState(() => {
+    const rawData = data && data.length > 0 ? data : Array.from({ length: 20 }, () => ({ failure_probability: 0.1 }));
+    return rawData.slice(0, 20).reverse().map((d, i) => {
+      const date = new Date(d.timestamp || (Date.now() - (20 - i) * 5000));
+      return {
+        time: `t-${i}`,
+        timestampLabel: `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`,
+        probability: Math.min(100, Math.max(0, d.failure_probability * 100))
+      };
+    });
+  });
   const [latestProb, setLatestProb] = useState(() => {
     if (data.length > 0) return Math.round(data[0].failure_probability * 100);
     return 0;
@@ -28,38 +33,41 @@ export function SentinelChart({ data }: { data: any[] }) {
         const dataArray = await pollPredictions();
         
         if (dataArray && dataArray.length > 0) {
-          const mapped = dataArray.slice(0, 10).reverse().map((d: any, i: number) => ({
-            time: `T-${10-i}s`,
-            probability: Math.min(100, Math.max(0, d.failure_probability * 100))
-          }));
+          const mapped = dataArray.slice(0, 20).reverse().map((d: any, index: number) => {
+            const date = new Date(d.timestamp || Date.now());
+            return {
+              time: `t-${index}`,
+              timestampLabel: `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`,
+              probability: Math.min(100, Math.max(0, d.failure_probability * 100))
+            };
+          });
           setChartData(mapped);
-          // Update the badge with the LATEST prediction
           setLatestProb(Math.round(dataArray[0].failure_probability * 100));
         }
       } catch (err) {
         console.error("Failed to fetch live chart data", err);
       }
-    }, 5000);
+    }, 2000);
 
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col font-sans">
       {/* Live Badge */}
-      <div className="flex justify-end mb-2 -mt-2">
+      <div className="flex justify-end mb-3">
         {latestProb > 80 ? (
-          <div className="px-2 py-1 bg-primary text-text-primary font-mono text-xs font-bold border border-text-primary uppercase flex items-center gap-2 animate-pulse">
-            <AlertTriangle className="w-3 h-3" />
+          <div className="px-2.5 py-1 bg-red-50 text-red-500 font-mono text-[10px] font-bold border border-red-200 rounded-full uppercase flex items-center gap-1.5 animate-pulse">
+            <AlertTriangle className="w-3.5 h-3.5" />
             FAIL_PROB: {latestProb}%
           </div>
         ) : (
-          <div className="px-2 py-1 bg-surface text-text-secondary font-mono text-xs font-bold border border-border uppercase flex items-center gap-2">
+          <div className="px-2.5 py-1 bg-gray-50 text-gray-500 font-mono text-[10px] font-bold border border-gray-200 rounded-full uppercase flex items-center gap-1.5">
             FAIL_PROB: {latestProb}%
           </div>
         )}
       </div>
-      <div className="flex-1">
+      <div className="flex-1 min-h-[160px]">
         <SentinelChartInner chartData={chartData} />
       </div>
     </div>

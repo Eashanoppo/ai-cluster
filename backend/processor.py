@@ -104,6 +104,9 @@ def run_processor():
                                 severity="CRITICAL",
                                 message=f"Thermal threshold breached: {latest.temperature_celsius:.1f}C"
                             ))
+                    elif latest.temperature_celsius < 85:
+                        # Auto-resolve critical alerts when node cools down below 85C
+                        Alert.objects.filter(node_id=node, resolved=False).update(resolved=True)
                     
                     # --- CostWatch ---
                     if latest.gpu_utilization_percent < 5:

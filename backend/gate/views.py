@@ -19,6 +19,9 @@ class ApprovalRequestViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
         if self.action == 'list':
+            history = self.request.query_params.get('history')
+            if history == 'true':
+                return qs.exclude(status='PENDING')
             return qs.filter(status='PENDING')
         return qs
 

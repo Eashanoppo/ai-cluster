@@ -49,3 +49,20 @@ export async function getCostReports(): Promise<any[]> {
 export async function getPendingApprovals(): Promise<any[]> {
   return fetchWithAuth('/gate/approvals/')
 }
+
+export async function getLatestTelemetry(): Promise<any[]> {
+  return fetchWithAuth('/telemetry/latest/')
+}
+
+export async function getTelemetryHistory(nodeId: string): Promise<any[]> {
+  return fetchWithAuth(`/telemetry/?node_id=${nodeId}&limit=20`)
+}
+
+export async function getAlerts(): Promise<any[]> {
+  return fetchWithAuth('/sentinel/alerts/')
+}
+
+export async function getApprovalsHistory(): Promise<any[]> {
+  return fetchWithAuth('/gate/approvals/?history=true')
+}
+

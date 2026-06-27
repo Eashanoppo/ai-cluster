@@ -12,7 +12,7 @@ from gate.models import ApprovalRequest
 from django.utils import timezone
 from datetime import timedelta
 
-NODES = ["Node-01", "Node-02", "Node-14", "Node-08", "Node-19"]
+NODES = [f"Node-{i:03d}" for i in range(1, 129)]
 
 # Initialize state for each node
 node_states = {
@@ -38,7 +38,6 @@ def generate_telemetry():
     try:
         while True:
             # --- React to Scheduler interventions ---
-            # FIX: WorkloadPlacement uses 'migrated_at', NOT 'created_at'
             try:
                 recent_migrations = WorkloadPlacement.objects.filter(
                     migrated_at__gte=timezone.now() - timedelta(seconds=15)
@@ -64,8 +63,12 @@ def generate_telemetry():
             except Exception:
                 pass
 
+
+
             # --- Count how many nodes are currently spiking ---
             spiking_count = sum(1 for n in NODES if node_states[n]["status"] == "spike")
+
+            telemetry_objects = []
 
             for node in NODES:
                 state = node_states[node]
@@ -77,20 +80,25 @@ def generate_telemetry():
                         state["status"] = "normal"
                         state["spike_ticks"] = 0
                         print(f"[{node}] SPIKE naturally expired. Returning to NORMAL.")
-                        continue
+                        # Continue to build normal state telemetry for this tick
+                        state["temp"] = apply_drift(state["temp"], 40, 60)
+                        state["util"] = apply_drift(state["util"], 20, 70)
+                        state["vram"] = apply_drift(state["vram"], 10000, 50000)
+                        state["power"] = apply_drift(state["power"], 100, 250)
 
                 # --- State transitions ---
-                # Only allow 1 node to spike at a time for clear chart visuals
-                if random.random() < 0.03:  # 3% chance per tick
+                # Allow up to 5 spiking nodes at a time for 128 nodes
+                if random.random() < 0.04:  # 4% chance per tick
                     if state["status"] == "normal":
-                        if spiking_count == 0:  # Only spike if no other node is spiking
+                        rand_choice = random.random()
+                        if rand_choice < 0.25:  # 25% of transitions from normal go to idle
+                            state["status"] = "idle"
+                            print(f"[{node}] entered IDLE state.")
+                        elif rand_choice < 0.35 and spiking_count < 5:  # 10% of transitions go to spike
                             state["status"] = "spike"
                             state["spike_ticks"] = 0
                             spiking_count += 1
                             print(f"[{node}] entered SPIKE state!")
-                        elif random.random() < 0.3:  # 30% chance to go idle instead
-                            state["status"] = "idle"
-                            print(f"[{node}] entered IDLE state.")
                     elif state["status"] == "idle":
                         state["status"] = "normal"
                         print(f"[{node}] returned to NORMAL from IDLE.")
@@ -112,21 +120,32 @@ def generate_telemetry():
                     state["vram"] = apply_drift(state["vram"], 10000, 50000)
                     state["power"] = apply_drift(state["power"], 100, 250)
 
-                GpuTelemetry.objects.create(
-                    node_id=node,
-                    gpu_id=0,
-                    temperature_celsius=state["temp"],
-                    vram_usage_mb=state["vram"],
-                    vram_total_mb=80000,
-                    gpu_utilization_percent=state["util"],
-                    power_draw_watts=state["power"]
+                telemetry_objects.append(
+                    GpuTelemetry(
+                        node_id=node,
+                        gpu_id=0,
+                        temperature_celsius=state["temp"],
+                        vram_usage_mb=state["vram"],
+                        vram_total_mb=80000,
+                        gpu_utilization_percent=state["util"],
+                        power_draw_watts=state["power"]
+                    )
                 )
-            status_parts = []
-            for n in NODES:
-                s = node_states[n]["status"][:3].upper()
-                t = node_states[n]["temp"]
-                status_parts.append(f"{n}={s} {t:.0f}C")
-            print(f"Tick | Nodes: {', '.join(status_parts)}")
+
+            # Bulk create all telemetry objects in a single database transaction
+            if telemetry_objects:
+                GpuTelemetry.objects.bulk_create(telemetry_objects)
+
+            # Data-cleanup cron job emulation: Prune records older than 10 minutes to prevent DB bloat
+            cutoff = timezone.now() - timedelta(minutes=10)
+            deleted_count, _ = GpuTelemetry.objects.filter(timestamp__lt=cutoff).delete()
+
+            # Print concise summary instead of printing all 128 nodes individually
+            nominal_count = sum(1 for n in NODES if node_states[n]["status"] == "normal")
+            idle_count = sum(1 for n in NODES if node_states[n]["status"] == "idle")
+            spike_count = sum(1 for n in NODES if node_states[n]["status"] == "spike")
+            print(f"Tick | Nodes: 128 total [Nominal={nominal_count}, Idle={idle_count}, Spike={spike_count}] | Pruned {deleted_count} records")
+
             time.sleep(5)
     except KeyboardInterrupt:
         print("Telemetry Generator stopped.")

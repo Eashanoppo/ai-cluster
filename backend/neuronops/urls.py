@@ -12,6 +12,7 @@ urlpatterns = [
     path('api/costwatch/', include('costwatch.urls')),
     path('api/copilot/', include('copilot.urls')),
     path('api/gate/', include('gate.urls')),
+    path('api/telemetry/', include('telemetry.urls')),
     
     # OpenAPI Schema
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

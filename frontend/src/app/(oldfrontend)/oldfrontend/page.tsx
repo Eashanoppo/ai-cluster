@@ -1,14 +1,14 @@
-import React, { Suspense } from 'react';
+import React from 'react';
 import { ShieldAlert, Cpu, Activity, DollarSign, CheckCircle, ArrowRightLeft } from 'lucide-react';
-import { SentinelChart } from './components/ui/Chart';
-import { CopilotChat } from './components/ui/Copilot';
-import { NodeTopology } from './components/ui/NodeTopology';
-import { TelemetryLog } from './components/ui/TelemetryLog';
-import { ApprovalGate } from './components/ui/ApprovalGate';
-import { getPredictions, getPlacements, getCostReports, getPendingApprovals } from './services/api';
+import { SentinelChart } from '../../components/ui-old/Chart';
+import { CopilotChat } from '../../components/ui-old/Copilot';
+import { NodeTopology } from '../../components/ui-old/NodeTopology';
+import { TelemetryLog } from '../../components/ui-old/TelemetryLog';
+import { ApprovalGate } from '../../components/ui-old/ApprovalGate';
+import { getPredictions, getPlacements, getCostReports, getPendingApprovals } from '../../services/api';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { logoutAction } from './actions/auth';
+import { logoutAction } from '../../actions/auth';
 
 export interface Prediction {
   id: number;
@@ -33,7 +33,7 @@ export interface ApprovalRequest {
   status: string;
 }
 
-export default async function Dashboard() {
+export default async function OldDashboard() {
   const cookieStore = await cookies();
   const token = cookieStore.get('jwt')?.value;
 
@@ -69,7 +69,7 @@ export default async function Dashboard() {
             <Cpu className="text-text-primary w-8 h-8" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold font-serif tracking-tight">NeuronOps_</h1>
+            <h1 className="text-3xl font-bold font-serif tracking-tight">NeuronOps_ (Legacy)</h1>
             <p className="font-mono text-xs uppercase tracking-widest text-text-secondary">SYS.INTELLIGENCE.LAYER</p>
           </div>
         </div>

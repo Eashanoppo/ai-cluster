@@ -30,3 +30,13 @@ export async function rejectRequest(id: number) {
     return { error: error.message };
   }
 }
+
+export async function pollPendingApprovals() {
+  try {
+    const data = await fetchWithAuth('/gate/approvals/');
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.error("Failed to poll pending approvals:", error);
+    return [];
+  }
+}
