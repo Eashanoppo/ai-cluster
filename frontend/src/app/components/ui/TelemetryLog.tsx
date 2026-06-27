@@ -13,44 +13,103 @@ interface GpuRecord {
 export function TelemetryLog() {
   const [logs, setLogs] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-
-  const fetchLogs = async () => {
-    try {
-      const data = await pollLatestTelemetry(); // Returns the latest tick for all 5 nodes
-      if (data && data.length > 0) {
-        const formattedLogs = data.map((node: GpuRecord) => {
-          const time = new Date(node.timestamp).toLocaleTimeString();
-          const isSpike = node.temperature_celsius >= 85;
-          const isIdle = node.gpu_utilization_percent < 5;
-
-          if (isSpike) {
-            return `[${time}] WARNING: ${node.node_id} thermal spike alert (${node.temperature_celsius.toFixed(1)}°C)`;
-          } else if (isIdle) {
-            return `[${time}] COSTWATCH: ${node.node_id} GPU idle (${node.gpu_utilization_percent.toFixed(0)}% util)`;
-          } else {
-            return `[${time}] DCGM: ${node.node_id} nominal (${node.temperature_celsius.toFixed(0)}°C, ${node.gpu_utilization_percent.toFixed(0)}% load)`;
-          }
-        });
-        setLogs(formattedLogs);
-        setError(null);
-      } else {
-        setError("Connection Lost");
-      }
-    } catch (err) {
-      console.error("Failed to fetch telemetry log feed", err);
-      setError("Connection Lost");
-    }
-  };
+  const logsEndRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetchLogs();
-    const interval = setInterval(fetchLogs, 5000);
+    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [logs]);
+
+  useEffect(() => {
+    const generateInitialLogs = async () => {
+      try {
+        const data = await pollLatestTelemetry();
+        if (data && data.length > 0) {
+          const historical: string[] = [];
+          // Pre-populate with 4 ticks of historical data (20 entries)
+          for (let tick = 4; tick >= 1; tick--) {
+            const tickTime = new Date(Date.now() - tick * 5000);
+            const timeStr = tickTime.toLocaleTimeString();
+            data.forEach((node: GpuRecord) => {
+              const offsetTemp = (Math.random() - 0.5) * 4;
+              const offsetUtil = (Math.random() - 0.5) * 8;
+              const temp = Math.max(30, Math.min(95, node.temperature_celsius + offsetTemp));
+              const util = Math.max(0, Math.min(100, node.gpu_utilization_percent + offsetUtil));
+              
+              const isSpike = temp >= 85;
+              const isIdle = util < 5;
+
+              if (isSpike) {
+                historical.push(`[${timeStr}] WARNING: ${node.node_id} thermal spike alert (${temp.toFixed(1)}°C)`);
+              } else if (isIdle) {
+                historical.push(`[${timeStr}] COSTWATCH: ${node.node_id} GPU idle (${util.toFixed(0)}% util)`);
+              } else {
+                historical.push(`[${timeStr}] DCGM: ${node.node_id} nominal (${temp.toFixed(0)}°C, ${util.toFixed(0)}% load)`);
+              }
+            });
+          }
+
+          const currentFormatted = data.map((node: GpuRecord) => {
+            const timeStr = new Date(node.timestamp).toLocaleTimeString();
+            const isSpike = node.temperature_celsius >= 85;
+            const isIdle = node.gpu_utilization_percent < 5;
+
+            if (isSpike) {
+              return `[${timeStr}] WARNING: ${node.node_id} thermal spike alert (${node.temperature_celsius.toFixed(1)}°C)`;
+            } else if (isIdle) {
+              return `[${timeStr}] COSTWATCH: ${node.node_id} GPU idle (${node.gpu_utilization_percent.toFixed(0)}% util)`;
+            } else {
+              return `[${timeStr}] DCGM: ${node.node_id} nominal (${node.temperature_celsius.toFixed(0)}°C, ${node.gpu_utilization_percent.toFixed(0)}% load)`;
+            }
+          });
+
+          setLogs([...historical, ...currentFormatted].slice(-25));
+          setError(null);
+        }
+      } catch (err) {
+        console.error("Failed to generate initial logs", err);
+      }
+    };
+
+    generateInitialLogs();
+
+    const interval = setInterval(async () => {
+      try {
+        const data = await pollLatestTelemetry();
+        if (data && data.length > 0) {
+          const currentFormatted = data.map((node: GpuRecord) => {
+            const timeStr = new Date(node.timestamp).toLocaleTimeString();
+            const isSpike = node.temperature_celsius >= 85;
+            const isIdle = node.gpu_utilization_percent < 5;
+
+            if (isSpike) {
+              return `[${timeStr}] WARNING: ${node.node_id} thermal spike alert (${node.temperature_celsius.toFixed(1)}°C)`;
+            } else if (isIdle) {
+              return `[${timeStr}] COSTWATCH: ${node.node_id} GPU idle (${node.gpu_utilization_percent.toFixed(0)}% util)`;
+            } else {
+              return `[${timeStr}] DCGM: ${node.node_id} nominal (${node.temperature_celsius.toFixed(0)}°C, ${node.gpu_utilization_percent.toFixed(0)}% load)`;
+            }
+          });
+
+          setLogs(prev => {
+            const combined = [...prev, ...currentFormatted];
+            return combined.slice(-25);
+          });
+          setError(null);
+        } else {
+          setError("Connection Lost");
+        }
+      } catch (err) {
+        console.error("Failed to fetch telemetry log feed", err);
+        setError("Connection Lost");
+      }
+    }, 5000);
+
     return () => clearInterval(interval);
   }, []);
 
   if (error) {
     return (
-      <div className="bg-surface border border-border p-4 shadow-sm font-mono min-h-[160px] flex flex-col justify-center items-center text-center text-red-400">
+      <div className="bg-surface border border-border p-4 shadow-sm font-mono h-[320px] flex flex-col justify-center items-center text-center text-red-400">
         <div className="w-10 h-10 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center mb-3">
           <span className="w-2.5 h-2.5 bg-red-400 rounded-full"></span>
         </div>
@@ -61,26 +120,27 @@ export function TelemetryLog() {
   }
 
   return (
-    <div className="card p-4 font-mono text-zinc-300 flex flex-col animate-fade-up delay-300">
-      <div className="flex justify-between items-center pb-2 border-b border-border mb-3">
+    <div className="card p-4 font-mono text-zinc-300 flex flex-col animate-fade-up delay-300 h-[320px]">
+      <div className="flex justify-between items-center pb-2 border-b border-border mb-3 flex-shrink-0">
         <span className="text-mono-label text-primary font-sans">Live DCGM Telemetry Log</span>
         <span className="w-2 h-2 bg-primary animate-pulse rounded-full"></span>
       </div>
-      <div className="flex flex-col space-y-1">
-        {logs.slice(0, 10).map((log, i) => {
+      <div className="flex-1 overflow-y-auto no-scrollbar space-y-1.5 min-h-0">
+        {logs.map((log, i) => {
           const isWarn = log.includes('WARNING:');
           const isCost = log.includes('COSTWATCH:');
           return (
             <div 
               key={i} 
               className={`text-[11px] leading-relaxed truncate ${
-                isWarn ? 'text-red-400 font-semibold' : isCost ? 'text-amber-450 font-medium' : 'text-zinc-400'
+                isWarn ? 'text-red-400 font-semibold animate-pulse' : isCost ? 'text-amber-500 font-medium' : 'text-zinc-400'
               }`}
             >
               {log}
             </div>
           );
         })}
+        <div ref={logsEndRef} />
       </div>
     </div>
   );

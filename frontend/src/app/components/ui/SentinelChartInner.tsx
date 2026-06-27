@@ -2,13 +2,24 @@ import React from 'react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
 export default function SentinelChartInner({ chartData }: { chartData: any[] }) {
+  const latestPoint = chartData[chartData.length - 1];
+  const latestProb = latestPoint ? latestPoint.probability : 0;
+
+  // Dynamic threshold-based color: <50 green, 50-80 amber, >=80 red
+  let themeColor = "#6ad02f";
+  if (latestProb >= 80) {
+    themeColor = "#ef4444";
+  } else if (latestProb >= 50) {
+    themeColor = "#eab308";
+  }
+
   return (
     <ResponsiveContainer width="100%" height="100%">
       <AreaChart data={chartData}>
         <defs>
           <linearGradient id="colorTemp" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#00E55F" stopOpacity={0.25}/>
-            <stop offset="95%" stopColor="#00E55F" stopOpacity={0}/>
+            <stop offset="5%" stopColor={themeColor} stopOpacity={0.25}/>
+            <stop offset="95%" stopColor={themeColor} stopOpacity={0}/>
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="#27272A" vertical={false} />
@@ -42,7 +53,7 @@ export default function SentinelChartInner({ chartData }: { chartData: any[] }) 
         <Area 
           type="monotone" 
           dataKey="probability" 
-          stroke="#00E55F" 
+          stroke={themeColor} 
           strokeWidth={2} 
           fillOpacity={1} 
           fill="url(#colorTemp)" 

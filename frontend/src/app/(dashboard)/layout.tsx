@@ -23,9 +23,13 @@ export default function DashboardLayout({
         <LumaBar isExpanded={isSidebarExpanded} onToggle={() => setIsSidebarExpanded(!isSidebarExpanded)} />
 
         {/* Content Wrapper */}
-        <div className={`flex-1 flex flex-col min-w-0 h-screen overflow-hidden transition-all duration-300 ${
-          isSidebarExpanded ? 'pl-68' : 'pl-28'
-        }`}>
+        <motion.div 
+          layout
+          transition={{ type: "spring", stiffness: 400, damping: 30 }}
+          className={`flex-1 flex flex-col min-w-0 h-screen overflow-hidden ${
+            isSidebarExpanded ? 'pl-68' : 'pl-28'
+          }`}
+        >
           
           {/* Main Top Header */}
           <header className="h-16 border-b border-border bg-background flex items-center justify-between px-6 z-25 flex-shrink-0">
@@ -52,11 +56,15 @@ export default function DashboardLayout({
            {/* Main Content & Side-by-Side Integrated Panel */}
           <div className="flex-1 flex flex-row min-w-0 overflow-hidden bg-background">
             {/* Main Content Area */}
-            <main className={`flex-1 overflow-y-auto p-6 bg-background relative ${isCopilotOpen ? 'no-scrollbar' : ''}`}>
+            <motion.main 
+              layout
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className={`flex-1 overflow-y-auto p-6 bg-background relative ${isCopilotOpen ? 'no-scrollbar' : ''}`}
+            >
               <div className="w-full h-full">
                 {children}
               </div>
-            </main>
+            </motion.main>
 
             {/* Integrated Sidebar Copilot Panel (Non-overlay) */}
             <AnimatePresence>
@@ -65,7 +73,7 @@ export default function DashboardLayout({
                   initial={{ width: 0, opacity: 0 }}
                   animate={{ width: 384, opacity: 1 }}
                   exit={{ width: 0, opacity: 0 }}
-                  transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                   className="border-l border-border bg-surface flex flex-col flex-shrink-0 h-full relative"
                 >
                   <div className="absolute top-[14px] right-4 z-30">
@@ -83,7 +91,7 @@ export default function DashboardLayout({
               )}
             </AnimatePresence>
           </div>
-        </div>
+        </motion.div>
 
         {/* Floating action button launcher */}
         {!isCopilotOpen && (

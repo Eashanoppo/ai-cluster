@@ -49,7 +49,7 @@ export default function LumaBar({ isExpanded, onToggle }: LumaBarProps) {
       <motion.div 
         layout
         transition={{ type: "spring", stiffness: 400, damping: 30 }}
-        className={`relative flex flex-col items-center bg-surface/50 backdrop-blur-2xl py-6 shadow-2xl border border-border overflow-visible transition-all duration-355 ${
+        className={`relative flex flex-col items-center bg-surface/50 backdrop-blur-2xl py-6 shadow-2xl border border-border overflow-visible ${
           isExpanded ? "w-56 px-4" : "w-16 px-2.5"
         }`}
       >

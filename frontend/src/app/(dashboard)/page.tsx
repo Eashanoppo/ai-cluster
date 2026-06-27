@@ -179,6 +179,9 @@ export default async function DashboardOverview() {
         <ApprovalGate requests={safeApprovals} />
 
       </div>
+      
+      {/* Bottom spacer for viewport breathing room */}
+      <div className="h-8 flex-shrink-0" />
     </div>
   );
 }

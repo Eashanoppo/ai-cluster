@@ -94,9 +94,10 @@ export function NodeTopology() {
   }
 
   // Count metrics for quick indicators
-  const spikingCount = nodes.filter(n => n.temperature_celsius >= 85).length;
-  const idleCount = nodes.filter(n => n.gpu_utilization_percent < 5).length;
-  const nominalCount = nodes.length - spikingCount - idleCount;
+  const criticalCount = nodes.filter(n => n.temperature_celsius >= 85 || n.gpu_utilization_percent >= 90).length;
+  const highLoadCount = nodes.filter(n => n.gpu_utilization_percent >= 70 && n.gpu_utilization_percent < 90 && n.temperature_celsius < 85).length;
+  const idleCount = nodes.filter(n => n.gpu_utilization_percent < 5 && n.temperature_celsius < 85).length;
+  const nominalCount = nodes.length - criticalCount - highLoadCount - idleCount;
 
   return (
     <div ref={containerRef} className="card p-5 font-sans relative animate-fade-up delay-300">
@@ -117,9 +118,13 @@ export function NodeTopology() {
             <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
             Nominal: {nominalCount}
           </div>
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-red-500/15 border border-red-500/30 text-red-400 rounded-lg animate-fade-up delay-150">
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-lg animate-fade-up delay-150">
+            <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+            High Load: {highLoadCount}
+          </div>
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-red-500/15 border border-red-500/30 text-red-400 rounded-lg animate-fade-up delay-225">
             <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></span>
-            Critical: {spikingCount}
+            Critical: {criticalCount}
           </div>
         </div>
       </div>
@@ -129,13 +134,17 @@ export function NodeTopology() {
         {nodes.map((node) => {
           const isSpike = node.temperature_celsius >= 85;
           const isIdle = node.gpu_utilization_percent < 5;
+          const isHighLoad = node.gpu_utilization_percent >= 70 && node.gpu_utilization_percent < 90;
+          const isMaxLoad = node.gpu_utilization_percent >= 90;
           const nodeNum = node.node_id.replace("Node-", "");
 
           let cellClass = "";
-          if (isSpike) {
+          if (isSpike || isMaxLoad) {
             cellClass = "bg-red-500 hover:bg-red-600 text-white border-red-600 shadow-md shadow-red-950 ring-2 ring-red-500/30 ring-offset-0 animate-pulse";
+          } else if (isHighLoad) {
+            cellClass = "bg-amber-550 hover:bg-amber-600 text-black border-amber-600 font-semibold";
           } else if (isIdle) {
-            cellClass = "bg-zinc-800 hover:bg-zinc-700/80 text-zinc-550 border-zinc-700";
+            cellClass = "bg-zinc-800 hover:bg-zinc-700/80 text-zinc-500 border-zinc-700";
           } else {
             cellClass = "bg-primary hover:bg-primary-hover text-black border-primary font-semibold";
           }
@@ -173,8 +182,10 @@ export function NodeTopology() {
           {/* Tooltip Header */}
           <div className="flex justify-between items-center border-b border-border pb-1.5 mb-1.5">
             <span className="font-mono font-bold tracking-tight text-white">{hoveredNode.node_id}</span>
-            {hoveredNode.temperature_celsius >= 85 ? (
+            {hoveredNode.temperature_celsius >= 85 || hoveredNode.gpu_utilization_percent >= 90 ? (
               <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-red-500 text-white animate-pulse">CRITICAL</span>
+            ) : hoveredNode.gpu_utilization_percent >= 70 ? (
+              <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-amber-500 text-black">HIGH LOAD</span>
             ) : hoveredNode.gpu_utilization_percent < 5 ? (
               <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-zinc-800 text-zinc-400 border border-zinc-700">IDLE</span>
             ) : (
