@@ -7,7 +7,7 @@ import { pollPredictions } from '../../actions/sentinel';
 
 const SentinelChartInner = dynamic(
   () => import('./SentinelChartInner'),
-  { ssr: false, loading: () => <div className="h-full w-full bg-white border border-gray-100 rounded-2xl animate-pulse flex items-center justify-center font-mono text-xs text-gray-400 uppercase tracking-wider">Syncing Telemetry...</div> }
+  { ssr: false, loading: () => <div className="h-full w-full bg-surface border border-border rounded-2xl animate-pulse flex items-center justify-center font-mono text-xs text-zinc-500 uppercase tracking-wider">Syncing Telemetry...</div> }
 );
 
 export function SentinelChart({ data }: { data: any[] }) {
@@ -57,12 +57,12 @@ export function SentinelChart({ data }: { data: any[] }) {
       {/* Live Badge */}
       <div className="flex justify-end mb-3">
         {latestProb > 80 ? (
-          <div className="px-2.5 py-1 bg-red-50 text-red-500 font-mono text-[10px] font-bold border border-red-200 rounded-full uppercase flex items-center gap-1.5 animate-pulse">
+          <div className="px-2.5 py-1 bg-red-500/15 text-red-400 font-mono text-[10px] font-bold border border-red-500/30 rounded-full uppercase flex items-center gap-1.5 animate-pulse">
             <AlertTriangle className="w-3.5 h-3.5" />
             FAIL_PROB: {latestProb}%
           </div>
         ) : (
-          <div className="px-2.5 py-1 bg-gray-50 text-gray-500 font-mono text-[10px] font-bold border border-gray-200 rounded-full uppercase flex items-center gap-1.5">
+          <div className="px-2.5 py-1 bg-surface-hover text-zinc-400 font-mono text-[10px] font-bold border border-border rounded-full uppercase flex items-center gap-1.5">
             FAIL_PROB: {latestProb}%
           </div>
         )}

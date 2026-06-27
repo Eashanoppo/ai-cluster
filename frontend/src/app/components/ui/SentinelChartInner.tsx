@@ -7,14 +7,14 @@ export default function SentinelChartInner({ chartData }: { chartData: any[] }) 
       <AreaChart data={chartData}>
         <defs>
           <linearGradient id="colorTemp" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#2563EB" stopOpacity={0.2}/>
-            <stop offset="95%" stopColor="#2563EB" stopOpacity={0}/>
+            <stop offset="5%" stopColor="#00E55F" stopOpacity={0.25}/>
+            <stop offset="95%" stopColor="#00E55F" stopOpacity={0}/>
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="#27272A" vertical={false} />
         <XAxis 
           dataKey="time" 
-          stroke="#94A3B8" 
+          stroke="#71717A" 
           fontSize={10} 
           fontFamily="JetBrains Mono" 
           tickLine={false} 
@@ -30,19 +30,19 @@ export default function SentinelChartInner({ chartData }: { chartData: any[] }) 
             return "";
           }}
         />
-        <YAxis stroke="#94A3B8" fontSize={10} fontFamily="JetBrains Mono" tickLine={false} axisLine={false} domain={[0, 100]} />
+        <YAxis stroke="#71717A" fontSize={10} fontFamily="JetBrains Mono" tickLine={false} axisLine={false} domain={[0, 100]} />
         <Tooltip 
           labelFormatter={(tick) => {
             const index = parseInt(tick.replace("t-", ""), 10);
             const dataPoint = chartData[index];
             return dataPoint ? `Time: ${dataPoint.timestampLabel}` : tick;
           }}
-          contentStyle={{ backgroundColor: '#FFFFFF', borderRadius: '8px', border: '1px solid #E2E8F0', color: '#0F172A', fontFamily: 'JetBrains Mono', fontSize: '11px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }} 
+          contentStyle={{ backgroundColor: '#141414', borderRadius: '12px', border: '1px solid #27272A', color: '#FFFFFF', fontFamily: 'JetBrains Mono', fontSize: '11px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.4)' }} 
         />
         <Area 
           type="monotone" 
           dataKey="probability" 
-          stroke="#2563EB" 
+          stroke="#00E55F" 
           strokeWidth={2} 
           fillOpacity={1} 
           fill="url(#colorTemp)" 

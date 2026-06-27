@@ -1,5 +1,5 @@
 import React from 'react';
-import { Lock, History, ShieldCheck, Check, X, User } from 'lucide-react';
+import { Lock, History, User } from 'lucide-react';
 import { ApprovalGate } from '../../components/ui/ApprovalGate';
 import { getPendingApprovals, getApprovalsHistory } from '../../services/api';
 import { cookies } from 'next/headers';
@@ -26,13 +26,13 @@ export default async function GatePage() {
     <div className="space-y-6 font-sans">
       
       {/* Page Header */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="card p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-900 font-serif leading-none tracking-tight">Execution Gate Manager</h2>
-          <p className="text-xs text-gray-500 mt-1.5">Human-in-the-loop audit logs and authorization controls</p>
+          <h2 className="text-xl font-bold text-white leading-none tracking-tight">Execution Gate Manager</h2>
+          <p className="text-xs text-zinc-400 mt-1.5">Human-in-the-loop audit logs and authorization controls</p>
         </div>
         <div className="flex gap-3">
-          <span className="font-mono text-xs font-bold px-3 py-1.5 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 flex items-center gap-1.5">
+          <span className="font-mono text-xs font-bold px-3 py-1.5 bg-red-500/10 text-red-450 rounded-xl border border-red-500/20 flex items-center gap-1.5">
             <Lock className="w-3.5 h-3.5" />
             {safePending.length} Actions Blocked
           </span>
@@ -49,21 +49,21 @@ export default async function GatePage() {
 
         {/* Right Column (2/3 width) - Historical Audit Log */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-            <div className="flex justify-between items-center mb-6 pb-3 border-b border-gray-100">
+          <div className="card p-5">
+            <div className="flex justify-between items-center mb-6 pb-3 border-b border-border">
               <div>
-                <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
-                  <History className="w-4 h-4 text-blue-600" />
+                <h3 className="text-sm font-semibold text-white flex items-center gap-1.5">
+                  <History className="w-4 h-4 text-primary" />
                   Operator Decision Audit Log
                 </h3>
-                <p className="text-[10px] text-gray-500 font-mono uppercase tracking-wider mt-0.5">Logs of approved and rejected autonomous scheduling actions</p>
+                <p className="text-[10px] text-zinc-450 font-mono uppercase tracking-wider mt-0.5">Logs of approved and rejected autonomous scheduling actions</p>
               </div>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-gray-100 text-gray-400 font-mono uppercase tracking-wider text-[9px] pb-2">
+                  <tr className="border-b border-border text-zinc-400 font-mono uppercase tracking-wider text-[9px] pb-2">
                     <th className="py-2.5">Decision Time</th>
                     <th className="py-2.5">Resource</th>
                     <th className="py-2.5">Action Type</th>
@@ -71,34 +71,34 @@ export default async function GatePage() {
                     <th className="py-2.5">Approved By</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 font-mono text-gray-600">
+                <tbody className="divide-y divide-border font-mono text-zinc-300">
                   {safeHistory.map((req: any) => (
-                    <tr key={req.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="py-3 text-[10px] text-gray-400">
+                    <tr key={req.id} className="hover:bg-surface-hover transition-colors">
+                      <td className="py-3 text-[10px] text-zinc-500">
                         {req.approved_at ? new Date(req.approved_at).toLocaleString() : '—'}
                       </td>
-                      <td className="py-3 font-bold text-gray-800">{req.target_resource}</td>
-                      <td className="py-3 text-[11px] text-gray-500 truncate max-w-[120px]" title={req.action_type}>
+                      <td className="py-3 font-bold text-white">{req.target_resource}</td>
+                      <td className="py-3 text-[11px] text-zinc-400 truncate max-w-[120px]" title={req.action_type}>
                         {req.action_type}
                       </td>
                       <td className="py-3">
                         <span className={`px-2 py-0.5 rounded-full border text-[9px] font-bold ${
                           req.status === 'APPROVED' 
-                            ? 'bg-emerald-50 border-emerald-100 text-emerald-600' 
-                            : 'bg-red-50 border-red-100 text-red-500'
+                            ? 'bg-primary/10 border-primary/20 text-primary' 
+                            : 'bg-red-500/10 border-red-500/20 text-red-400'
                         }`}>
                           {req.status}
                         </span>
                       </td>
-                      <td className="py-3 text-gray-500 font-sans text-[11px] flex items-center gap-1">
-                        <User className="w-3.5 h-3.5 text-gray-400" />
+                      <td className="py-3 text-zinc-400 font-sans text-[11px] flex items-center gap-1">
+                        <User className="w-3.5 h-3.5 text-zinc-500" />
                         {req.approved_by?.username || 'System Agent'}
                       </td>
                     </tr>
                   ))}
                   {safeHistory.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="py-16 text-center text-gray-400 font-mono text-xs uppercase">
+                      <td colSpan={5} className="py-16 text-center text-zinc-500 font-mono text-xs uppercase">
                         No historical decisions archived.
                       </td>
                     </tr>

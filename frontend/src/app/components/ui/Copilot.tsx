@@ -80,21 +80,21 @@ export function CopilotChat() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm font-sans">
+    <div className="flex flex-col h-full bg-surface border border-border overflow-hidden shadow-2xl font-sans rounded-none">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
+      <div className="flex items-center justify-between px-4 py-3 bg-surface border-b border-border">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600">
+          <div className="w-8 h-8 rounded-none bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
             <Sparkles className="w-4 h-4" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-gray-900">Cluster Copilot</h2>
-            <p className="text-[10px] text-gray-500 font-mono uppercase tracking-wider">Ollama Model Assistant</p>
+            <h2 className="text-sm font-semibold text-white">Cluster Copilot</h2>
+            <p className="text-mono-label text-zinc-400 mt-0.5">Ollama Model Assistant</p>
           </div>
         </div>
         <button 
           onClick={() => setShowConfig(!showConfig)}
-          className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800/40 rounded-none transition-colors outline-none glow-focus cursor-pointer"
         >
           <Settings className="w-4 h-4" />
         </button>
@@ -102,43 +102,43 @@ export function CopilotChat() {
 
       {/* Model config panel */}
       {showConfig && (
-        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 grid grid-cols-2 gap-2 text-xs">
+        <div className="px-4 py-3 bg-zinc-900 border-b border-border grid grid-cols-2 gap-2 text-xs text-zinc-350">
           <div>
-            <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">LLM Provider</label>
+            <label className="block text-mono-label text-zinc-400 mb-1">LLM Provider</label>
             <select 
               value={provider} 
               onChange={(e) => setProvider(e.target.value)}
-              className="w-full bg-white border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:border-gray-400 transition-colors"
+              className="w-full bg-surface border border-border text-white rounded-none px-2 py-1.5 focus:outline-none focus:border-primary transition-colors cursor-pointer"
             >
               <option value="ollama">Ollama (Local)</option>
               <option value="openrouter">OpenRouter (Cloud)</option>
             </select>
           </div>
           <div>
-            <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Model ID</label>
+            <label className="block text-mono-label text-zinc-400 mb-1">Model ID</label>
             <input 
               type="text" 
               value={model} 
               onChange={(e) => setModel(e.target.value)}
-              className="w-full bg-white border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:border-gray-400 transition-colors font-mono"
+              className="w-full bg-surface border border-border text-white rounded-none px-2 py-1.5 focus:outline-none focus:border-primary transition-colors font-mono"
             />
           </div>
         </div>
       )}
 
       {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      <div className="flex-1 overflow-y-auto no-scrollbar px-4 py-4 space-y-4">
         {messages.map((msg, idx) => (
           <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`flex flex-col max-w-[85%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-              <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+              <div className={`px-4 py-3 rounded-none text-sm leading-relaxed ${
                 msg.role === 'user' 
-                  ? 'bg-blue-600 text-white rounded-br-none font-medium' 
-                  : 'bg-gray-100 text-gray-900 rounded-bl-none font-sans'
+                  ? 'bg-primary text-black font-semibold shadow-md shadow-primary/10' 
+                  : 'bg-zinc-950 border border-border text-zinc-200'
               }`}>
                 {msg.content}
               </div>
-              <span className="text-[9px] text-gray-400 font-mono uppercase tracking-wider mt-1.5">
+              <span className="text-[9px] text-zinc-500 font-mono uppercase tracking-wider mt-1.5">
                 {msg.role === 'user' ? 'You' : 'Copilot'}
               </span>
             </div>
@@ -147,11 +147,11 @@ export function CopilotChat() {
         {isLoading && (
           <div className="flex justify-start">
             <div className="flex flex-col items-start max-w-[85%]">
-              <div className="px-4 py-3 bg-gray-100 text-gray-500 rounded-2xl rounded-bl-none text-sm flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
-                <span className="font-mono text-xs uppercase tracking-wider ml-1">Analyzing cluster telemetry...</span>
+              <div className="px-4 py-3 bg-zinc-950 border border-border text-zinc-400 rounded-none text-sm flex items-center gap-2">
+                <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                <span className="font-mono text-[10px] uppercase tracking-wider ml-1">Analyzing cluster telemetry...</span>
               </div>
             </div>
           </div>
@@ -160,20 +160,20 @@ export function CopilotChat() {
       </div>
 
       {/* Input Form */}
-      <form onSubmit={handleChat} className="p-3 border-t border-gray-200 bg-white">
-        <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 focus-within:border-gray-400 transition-colors">
+      <form onSubmit={handleChat} className="p-3 border-t border-border bg-surface">
+        <div className="flex items-center gap-2 bg-zinc-900 border border-border rounded-none px-3 py-1.5 focus-within:border-primary transition-colors">
           <input 
             type="text" 
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
             placeholder="Ask Copilot about cluster status..."
-            className="flex-1 bg-transparent py-1.5 text-sm text-gray-900 focus:outline-none placeholder:text-gray-400"
+            className="flex-1 bg-transparent py-1.5 text-sm text-white focus:outline-none placeholder:text-zinc-500"
             disabled={isLoading}
           />
           <button 
             type="submit"
             disabled={isLoading || !chatInput.trim()}
-            className="p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:hover:bg-blue-600 flex items-center justify-center"
+            className="p-1.5 bg-primary text-black hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:hover:bg-primary flex items-center justify-center rounded-none outline-none glow-focus cursor-pointer"
           >
             <Send className="w-4 h-4" />
           </button>

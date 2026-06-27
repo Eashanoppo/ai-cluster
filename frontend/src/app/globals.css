@@ -1,28 +1,28 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  /* Premium White Theme Colors */
-  --color-background: #F8FAFC;
-  --color-surface: #FFFFFF;
-  --color-surface-hover: #F1F5F9;
-  --color-primary: #2563EB;
-  --color-primary-light: #EFF6FF;
-  --color-primary-hover: #1D4ED8;
-  --color-secondary: #0EA5E9;
-  --color-text-primary: #0F172A;
-  --color-text-secondary: #64748B;
-  --color-border: #E2E8F0;
+  /* Premium Dark Theme Colors */
+  --color-background: #09090B;
+  --color-surface: #141414;
+  --color-surface-hover: #1C1C1E;
+  --color-primary: #00E55F;
+  --color-primary-light: rgba(0, 229, 95, 0.1);
+  --color-primary-hover: #00C250;
+  --color-secondary: #008A39;
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #A1A1AA;
+  --color-border: #27272A;
   
-  /* Font Pairings - Professional */
-  --font-sans: "DM Sans", "Inter", Arial, Helvetica, sans-serif;
-  --font-serif: "DM Sans", "Inter", Georgia, sans-serif;
+  /* Font Pairings - Professional / Technical */
+  --font-sans: "Inter", "DM Sans", Arial, Helvetica, sans-serif;
+  --font-serif: "Inter", Georgia, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
 
   /* Universal Rounded Corners */
-  --radius-sm: 4px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
   --radius-full: 9999px;
 }
 
@@ -31,32 +31,135 @@ body {
   background-color: var(--color-background);
   color: var(--color-text-primary);
   font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom shadow utilities */
-.shadow-sm {
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+/* Typography Hierarchy Utilities */
+h1, .h1 {
+  font-family: var(--font-sans);
+  font-size: 2.25rem; /* 36px */
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
 }
 
-.shadow-md {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+h2, .h2 {
+  font-family: var(--font-sans);
+  font-size: 1.5rem; /* 24px */
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
 }
 
-.shadow-lg {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+h3, .h3 {
+  font-family: var(--font-sans);
+  font-size: 1.125rem; /* 18px */
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
 }
 
-/* Modern Card definition replacing retro box shadows */
+.text-mono-label {
+  font-family: var(--font-mono);
+  font-size: 0.625rem; /* 10px */
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* Depth-Based Box Shadows */
+.shadow-depth-low {
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.4), 0 1px 3px -1px rgba(0, 0, 0, 0.2);
+}
+
+.shadow-depth-med {
+  box-shadow: 0 8px 30px -4px rgba(0, 0, 0, 0.7), 0 4px 12px -2px rgba(0, 0, 0, 0.3);
+}
+
+.shadow-depth-high {
+  box-shadow: 0 24px 50px -8px rgba(0, 0, 0, 0.9), 0 8px 24px -4px rgba(0, 0, 0, 0.5);
+}
+
+/* Focus and Accent Glow States */
+.glow-focus:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 14px 2px rgba(0, 229, 95, 0.35);
+}
+
+.glow-cta {
+  box-shadow: 0 4px 20px -2px rgba(0, 229, 95, 0.3);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.glow-cta:hover {
+  box-shadow: 0 4px 25px -1px rgba(0, 229, 95, 0.5);
+}
+
+/* Enhanced Card Layout & Hover Interaction */
 .card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease-in-out;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.7);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+              border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .card:hover {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07);
+  transform: translateY(-4px);
+  border-color: rgba(0, 229, 95, 0.35);
+  box-shadow: 0 16px 35px -6px rgba(0, 0, 0, 0.8), 0 0 15px 1px rgba(0, 229, 95, 0.08);
+  background-color: var(--color-surface-hover);
+}
+
+/* Entrance Animations (fadeInUp) */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fadeInUp 0.45s cubic-bezier(0.215, 0.610, 0.355, 1) forwards;
+  opacity: 0;
+}
+
+.delay-75 { animation-delay: 75ms; }
+.delay-150 { animation-delay: 150ms; }
+.delay-225 { animation-delay: 225ms; }
+.delay-300 { animation-delay: 300ms; }
+
+/* Reduced Motion Setting Safeguard */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .card,
+  button,
+  a,
+  span,
+  div,
+  form,
+  header,
+  aside,
+  input,
+  textarea {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+  
+  .card:hover {
+    transform: none !important;
+    box-shadow: none !important;
+  }
 }
 
 /* Hide scrollbars utility */
@@ -67,3 +170,4 @@ body {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
+
