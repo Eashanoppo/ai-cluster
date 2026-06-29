@@ -13,10 +13,12 @@ interface GpuRecord {
 export function TelemetryLog() {
   const [logs, setLogs] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const logsEndRef = React.useRef<HTMLDivElement>(null);
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+    }
   }, [logs]);
 
   useEffect(() => {
@@ -38,12 +40,13 @@ export function TelemetryLog() {
               const isSpike = temp >= 85;
               const isIdle = util < 5;
 
+              const nodeId = node.node_id.replace('Node-', '');
               if (isSpike) {
-                historical.push(`[${timeStr}] WARNING: ${node.node_id} thermal spike alert (${temp.toFixed(1)}°C)`);
+                historical.push(`[${timeStr}] WARNING: Server ${nodeId} temperature warning (${temp.toFixed(1)}°C)`);
               } else if (isIdle) {
-                historical.push(`[${timeStr}] COSTWATCH: ${node.node_id} GPU idle (${util.toFixed(0)}% util)`);
+                historical.push(`[${timeStr}] SAVINGS: Server ${nodeId} is inactive (${util.toFixed(0)}% load)`);
               } else {
-                historical.push(`[${timeStr}] DCGM: ${node.node_id} nominal (${temp.toFixed(0)}°C, ${util.toFixed(0)}% load)`);
+                historical.push(`[${timeStr}] LOG: Server ${nodeId} is operating normally (${temp.toFixed(0)}°C, ${util.toFixed(0)}% load)`);
               }
             });
           }
@@ -53,12 +56,13 @@ export function TelemetryLog() {
             const isSpike = node.temperature_celsius >= 85;
             const isIdle = node.gpu_utilization_percent < 5;
 
+            const nodeId = node.node_id.replace('Node-', '');
             if (isSpike) {
-              return `[${timeStr}] WARNING: ${node.node_id} thermal spike alert (${node.temperature_celsius.toFixed(1)}°C)`;
+              return `[${timeStr}] WARNING: Server ${nodeId} temperature warning (${node.temperature_celsius.toFixed(1)}°C)`;
             } else if (isIdle) {
-              return `[${timeStr}] COSTWATCH: ${node.node_id} GPU idle (${node.gpu_utilization_percent.toFixed(0)}% util)`;
+              return `[${timeStr}] SAVINGS: Server ${nodeId} is inactive (${node.gpu_utilization_percent.toFixed(0)}% load)`;
             } else {
-              return `[${timeStr}] DCGM: ${node.node_id} nominal (${node.temperature_celsius.toFixed(0)}°C, ${node.gpu_utilization_percent.toFixed(0)}% load)`;
+              return `[${timeStr}] LOG: Server ${nodeId} is operating normally (${node.temperature_celsius.toFixed(0)}°C, ${node.gpu_utilization_percent.toFixed(0)}% load)`;
             }
           });
 
@@ -81,12 +85,13 @@ export function TelemetryLog() {
             const isSpike = node.temperature_celsius >= 85;
             const isIdle = node.gpu_utilization_percent < 5;
 
+            const nodeId = node.node_id.replace('Node-', '');
             if (isSpike) {
-              return `[${timeStr}] WARNING: ${node.node_id} thermal spike alert (${node.temperature_celsius.toFixed(1)}°C)`;
+              return `[${timeStr}] WARNING: Server ${nodeId} temperature warning (${node.temperature_celsius.toFixed(1)}°C)`;
             } else if (isIdle) {
-              return `[${timeStr}] COSTWATCH: ${node.node_id} GPU idle (${node.gpu_utilization_percent.toFixed(0)}% util)`;
+              return `[${timeStr}] SAVINGS: Server ${nodeId} is inactive (${node.gpu_utilization_percent.toFixed(0)}% load)`;
             } else {
-              return `[${timeStr}] DCGM: ${node.node_id} nominal (${node.temperature_celsius.toFixed(0)}°C, ${node.gpu_utilization_percent.toFixed(0)}% load)`;
+              return `[${timeStr}] LOG: Server ${nodeId} is operating normally (${node.temperature_celsius.toFixed(0)}°C, ${node.gpu_utilization_percent.toFixed(0)}% load)`;
             }
           });
 
@@ -113,8 +118,8 @@ export function TelemetryLog() {
         <div className="w-10 h-10 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center mb-3">
           <span className="w-2.5 h-2.5 bg-red-400 rounded-full"></span>
         </div>
-        <h3 className="text-sm font-semibold text-white">Live DCGM Telemetry Log</h3>
-        <p className="text-xs text-red-400 mt-1">CONNECTION_LOST_RECONNECTING</p>
+        <h3 className="text-sm font-semibold text-white">System Activity Logs</h3>
+        <p className="text-xs text-red-400 mt-1">Connection lost. Reconnecting...</p>
       </div>
     );
   }
@@ -122,10 +127,10 @@ export function TelemetryLog() {
   return (
     <div className="card p-4 font-mono text-zinc-300 flex flex-col animate-fade-up delay-300 h-[320px]">
       <div className="flex justify-between items-center pb-2 border-b border-border mb-3 flex-shrink-0">
-        <span className="text-mono-label text-primary font-sans">Live DCGM Telemetry Log</span>
+        <span className="text-mono-label text-primary font-sans">System Activity Logs</span>
         <span className="w-2 h-2 bg-primary animate-pulse rounded-full"></span>
       </div>
-      <div className="flex-1 overflow-y-auto no-scrollbar space-y-1.5 min-h-0">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto no-scrollbar space-y-1.5 min-h-0">
         {logs.map((log, i) => {
           const isWarn = log.includes('WARNING:');
           const isCost = log.includes('COSTWATCH:');
@@ -140,7 +145,6 @@ export function TelemetryLog() {
             </div>
           );
         })}
-        <div ref={logsEndRef} />
       </div>
     </div>
   );

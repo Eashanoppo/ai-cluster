@@ -104,27 +104,27 @@ export function NodeTopology() {
       {/* Header section with inline summaries */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 pb-4 border-b border-border">
         <div>
-          <h2 className="text-sm font-semibold text-white">GPU Fleet Node Status (128 Nodes)</h2>
-          <p className="text-mono-label text-zinc-400 mt-0.5">Live Grid Observability</p>
+          <h2 className="text-sm font-semibold text-white">Server Map Grid (128 Servers)</h2>
+          <p className="text-mono-label text-zinc-500 mt-0.5">Live Server Map</p>
         </div>
         
         {/* Status Indicators bar */}
         <div className="flex flex-wrap gap-3 font-mono text-[9px] uppercase tracking-wider font-bold">
           <div className="flex items-center gap-1.5 px-2 py-1 bg-zinc-800/40 border border-zinc-700 text-zinc-400 rounded-lg animate-fade-up">
             <span className="w-1.5 h-1.5 bg-zinc-500 rounded-full"></span>
-            Idle: {idleCount}
+            Inactive: {idleCount}
           </div>
           <div className="flex items-center gap-1.5 px-2 py-1 bg-primary/10 border border-primary/20 text-primary rounded-lg animate-fade-up delay-75">
             <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
-            Nominal: {nominalCount}
+            Normal: {nominalCount}
           </div>
           <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-lg animate-fade-up delay-150">
             <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
-            High Load: {highLoadCount}
+            Active: {highLoadCount}
           </div>
           <div className="flex items-center gap-1.5 px-2 py-1 bg-red-500/15 border border-red-500/30 text-red-400 rounded-lg animate-fade-up delay-225">
             <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></span>
-            Critical: {criticalCount}
+            Warning: {criticalCount}
           </div>
         </div>
       </div>
@@ -181,15 +181,15 @@ export function NodeTopology() {
         >
           {/* Tooltip Header */}
           <div className="flex justify-between items-center border-b border-border pb-1.5 mb-1.5">
-            <span className="font-mono font-bold tracking-tight text-white">{hoveredNode.node_id}</span>
+            <span className="font-mono font-bold tracking-tight text-white">{hoveredNode.node_id.replace('Node-', 'Server ')}</span>
             {hoveredNode.temperature_celsius >= 85 || hoveredNode.gpu_utilization_percent >= 90 ? (
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-red-500 text-white animate-pulse">CRITICAL</span>
+              <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-red-500 text-white animate-pulse">WARNING</span>
             ) : hoveredNode.gpu_utilization_percent >= 70 ? (
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-amber-500 text-black">HIGH LOAD</span>
+              <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-amber-500 text-black">ACTIVE</span>
             ) : hoveredNode.gpu_utilization_percent < 5 ? (
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-zinc-800 text-zinc-400 border border-zinc-700">IDLE</span>
+              <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-zinc-800 text-zinc-400 border border-zinc-700">INACTIVE</span>
             ) : (
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-primary text-black">NOMINAL</span>
+              <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-primary text-black">NORMAL</span>
             )}
           </div>
 
@@ -199,7 +199,7 @@ export function NodeTopology() {
             <div className="flex items-center gap-1.5">
               <Thermometer className={`w-3.5 h-3.5 ${hoveredNode.temperature_celsius >= 85 ? 'text-red-400' : 'text-zinc-400'}`} />
               <div>
-                <span className="block text-[8px] text-zinc-400 font-mono uppercase tracking-wider">Temp</span>
+                <span className="block text-[8px] text-zinc-400 font-mono uppercase tracking-wider">Temperature</span>
                 <span className={`text-[11px] font-bold font-mono ${hoveredNode.temperature_celsius >= 85 ? 'text-red-400' : 'text-zinc-200'}`}>
                   {hoveredNode.temperature_celsius.toFixed(1)}°C
                 </span>
@@ -210,7 +210,7 @@ export function NodeTopology() {
             <div className="flex items-center gap-1.5">
               <Zap className="w-3.5 h-3.5 text-zinc-400" />
               <div>
-                <span className="block text-[8px] text-zinc-400 font-mono uppercase tracking-wider">Util</span>
+                <span className="block text-[8px] text-zinc-400 font-mono uppercase tracking-wider">Load</span>
                 <span className="text-[11px] font-bold font-mono text-zinc-200">
                   {hoveredNode.gpu_utilization_percent.toFixed(0)}%
                 </span>
@@ -221,7 +221,7 @@ export function NodeTopology() {
             <div className="flex items-center gap-1.5">
               <Database className="w-3.5 h-3.5 text-zinc-400" />
               <div>
-                <span className="block text-[8px] text-zinc-400 font-mono uppercase tracking-wider">VRAM</span>
+                <span className="block text-[8px] text-zinc-400 font-mono uppercase tracking-wider">Memory</span>
                 <span className="text-[11px] font-bold font-mono text-zinc-200">
                   {(hoveredNode.vram_usage_mb / 1024).toFixed(1)} GB
                 </span>

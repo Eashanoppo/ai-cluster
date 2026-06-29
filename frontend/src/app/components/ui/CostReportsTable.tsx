@@ -34,10 +34,10 @@ export function CostReportsTable({ reports }: { reports: CostReport[] }) {
           <thead>
             <tr className="border-b border-border text-zinc-400 font-mono uppercase tracking-wider text-[9px] pb-2">
               <th className="py-2.5">Reported At</th>
-              <th className="py-2.5">Node ID</th>
-              <th className="py-2.5">Idle Time (Hours)</th>
-              <th className="py-2.5">Wasted Value (USD)</th>
-              <th className="py-2.5">Redirection Mode</th>
+              <th className="py-2.5">Server</th>
+              <th className="py-2.5">Inactive Duration (Hours)</th>
+              <th className="py-2.5">Underutilized Value (USD)</th>
+              <th className="py-2.5">Optimization State</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border font-mono text-zinc-300">
@@ -46,13 +46,13 @@ export function CostReportsTable({ reports }: { reports: CostReport[] }) {
                 <td className="py-3 text-[10px] text-zinc-550">
                   {new Date(c.reported_at).toLocaleString()}
                 </td>
-                <td className="py-3 font-bold text-white">{c.node_id}</td>
+                <td className="py-3 font-bold text-white">{c.node_id.replace('Node-', 'Server ')}</td>
                 <td className="py-3">{c.idle_time_hours.toFixed(1)} H</td>
                 <td className="py-3 text-red-400 font-bold">${parseFloat(c.wasted_cost_usd).toFixed(2)}</td>
                 <td className="py-3">
                   <span className="px-2.5 py-0.5 bg-primary/10 border border-primary/20 text-primary rounded-full text-[9px] font-bold flex items-center gap-1 w-fit">
                     <Sparkles className="w-3 h-3" />
-                    Ollama Redirection
+                    Local Model Tasks
                   </span>
                 </td>
               </tr>
@@ -60,7 +60,7 @@ export function CostReportsTable({ reports }: { reports: CostReport[] }) {
             {reports.length === 0 && (
               <tr>
                 <td colSpan={5} className="py-16 text-center text-zinc-500 font-mono text-xs uppercase">
-                  No idle node waste detected (100% Fleet efficiency).
+                  All capacity fully utilized (150% target efficiency).
                 </td>
               </tr>
             )}

@@ -28,10 +28,19 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
   }
 
   const json = await res.json()
-  if (json.results !== undefined) {
-    return json.results
+  
+  // Extract from the { success: true, data: ... } envelope if present
+  let payload = json
+  if (json && json.success === true && json.data !== undefined) {
+    payload = json.data
   }
-  return json.data !== undefined ? json.data : json
+
+  // Extract from paginated DRF envelope if present
+  if (payload && payload.results !== undefined) {
+    return payload.results
+  }
+
+  return payload && payload.data !== undefined ? payload.data : payload
 }
 
 export async function getPredictions(): Promise<any[]> {

@@ -26,8 +26,8 @@ export default async function CostWatchPage() {
       {/* Top Header Summary */}
       <div className="card p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white leading-none tracking-tight">CostWatch GPU Allocator</h2>
-          <p className="text-xs text-zinc-400 mt-1.5">Monitors idle nodes and redirects idle GPU power to local LLMs</p>
+          <h2 className="text-xl font-bold text-white leading-none tracking-tight">Savings Manager</h2>
+          <p className="text-xs text-zinc-400 mt-1.5">Monitors inactive servers and redirects resource power to local assistant models</p>
         </div>
         <div className="flex gap-3">
           <span className="font-mono text-xs font-bold px-3 py-1.5 bg-primary/10 text-primary rounded-xl border border-primary/20 flex items-center gap-1.5">
@@ -47,9 +47,9 @@ export default async function CostWatchPage() {
               <div>
                 <h3 className="text-sm font-semibold text-white flex items-center gap-1.5">
                   <History className="w-4 h-4 text-primary" />
-                  Wasted Capacity Reports
+                  Inactive Capacity Reports
                 </h3>
-                <p className="text-[10px] text-zinc-450 font-mono uppercase tracking-wider mt-0.5">Logs of idle nodes flagged for LLM redirection</p>
+                <p className="text-[10px] text-zinc-455 font-mono uppercase tracking-wider mt-0.5">Logs of inactive servers flagged for assistant model tasks</p>
               </div>
             </div>
 
@@ -64,7 +64,7 @@ export default async function CostWatchPage() {
           <div className="card p-5">
             <h3 className="text-sm font-semibold text-white mb-4 pb-3 border-b border-border flex items-center gap-1.5">
               <Cpu className="w-4 h-4 text-primary" />
-              Ollama Redirection Fleet
+              Assistant Task Allocation
             </h3>
             
             <div className="space-y-4">
@@ -72,11 +72,11 @@ export default async function CostWatchPage() {
                 <div key={idx} className="p-4 bg-surface-hover border border-border rounded-xl space-y-2">
                   <div className="flex justify-between items-center text-[10px] font-mono text-zinc-400 uppercase">
                     <span>Active Deployment</span>
-                    <span className="text-primary font-bold">100% GPU Reclaimed</span>
+                    <span className="text-primary font-bold">100% Resource Reallocated</span>
                   </div>
-                  <h4 className="font-bold text-white text-sm">{nodeId}</h4>
+                  <h4 className="font-bold text-white text-sm">{nodeId.replace('Node-', 'Server ')}</h4>
                   <div className="flex items-center gap-2 bg-primary/10 text-primary border border-primary/20 px-3 py-1.5 rounded-lg text-[10px] font-bold font-mono uppercase tracking-wider justify-between">
-                    <span>Local LLM: Llama-3.1-8B</span>
+                    <span>Local Model: Llama-3.1</span>
                     <span className="w-1.5 h-1.5 bg-primary rounded-full animate-ping"></span>
                   </div>
                 </div>
@@ -85,7 +85,7 @@ export default async function CostWatchPage() {
               {idleNodes.length === 0 && (
                 <div className="p-12 text-center text-zinc-550 font-mono text-xs uppercase flex flex-col items-center justify-center gap-2">
                   <CheckCircle className="w-8 h-8 text-primary mb-1" />
-                  0 Idle GPUs
+                  All Servers Active
                 </div>
               )}
             </div>

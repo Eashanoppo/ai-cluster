@@ -11,7 +11,7 @@ export function CopilotChat() {
   const pathname = usePathname();
   const [chatInput, setChatInput] = useState('');
   const [messages, setMessages] = useState([
-    { role: 'system', content: 'Hello! I am your NeuronOps AI Copilot. I can help you analyze cluster telemetry, predict node failures, and optimize scheduler decisions. Ask me anything!' }
+    { role: 'system', content: 'Hello! I am your AI Assistant. I can help you analyze system status, forecast potential issues, and optimize task placements. Ask me anything!' }
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [provider, setProvider] = useState('ollama');
@@ -88,8 +88,8 @@ export function CopilotChat() {
             <Sparkles className="w-4 h-4" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-white">Cluster Copilot</h2>
-            <p className="text-mono-label text-zinc-400 mt-0.5">Ollama Model Assistant</p>
+            <h2 className="text-sm font-semibold text-white">AI Assistant</h2>
+            <p className="text-mono-label text-zinc-400 mt-0.5">Local Assistant Model</p>
           </div>
         </div>
         <button 
@@ -151,7 +151,7 @@ export function CopilotChat() {
                 <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
                 <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
                 <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
-                <span className="font-mono text-[10px] uppercase tracking-wider ml-1">Analyzing cluster telemetry...</span>
+                <span className="font-mono text-[10px] uppercase tracking-wider ml-1">Analyzing system status...</span>
               </div>
             </div>
           </div>
@@ -166,7 +166,7 @@ export function CopilotChat() {
             type="text" 
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
-            placeholder="Ask Copilot about cluster status..."
+            placeholder="Ask Assistant about system status..."
             className="flex-1 bg-transparent py-1.5 text-sm text-white focus:outline-none placeholder:text-zinc-500"
             disabled={isLoading}
           />

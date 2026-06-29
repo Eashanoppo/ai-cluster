@@ -22,13 +22,13 @@ export default async function SchedulerPage() {
       {/* Page Header */}
       <div className="card p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white leading-none tracking-tight">Workload Placement Scheduler</h2>
-          <p className="text-xs text-zinc-400 mt-1.5">Autonomous job migration & thermal workload routing</p>
+          <h2 className="text-xl font-bold text-white leading-none tracking-tight">Job Reallocations</h2>
+          <p className="text-xs text-zinc-400 mt-1.5">Historical logs of automatically moved tasks</p>
         </div>
         <div className="flex gap-3">
           <span className="font-mono text-xs font-bold px-3 py-1.5 bg-primary/10 text-primary rounded-xl border border-primary/20 flex items-center gap-1.5">
             <Activity className="w-3.5 h-3.5" />
-            {safePlacements.length} Total Migrations Logged
+            {safePlacements.length} Total Tasks Reallocated
           </span>
         </div>
       </div>
@@ -39,9 +39,9 @@ export default async function SchedulerPage() {
           <div>
             <h3 className="text-sm font-semibold text-white flex items-center gap-1.5">
               <ArrowRightLeft className="w-4 h-4 text-primary" />
-              Scheduler Placement History
+              Task Reallocation Log
             </h3>
-            <p className="text-[10px] text-zinc-450 font-mono uppercase tracking-wider mt-0.5">Audit log of all autonomous workload routing actions</p>
+            <p className="text-[10px] text-zinc-450 font-mono uppercase tracking-wider mt-0.5">Audit logs of automatic task placement actions</p>
           </div>
         </div>
 
@@ -49,12 +49,12 @@ export default async function SchedulerPage() {
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-border text-zinc-400 font-mono uppercase tracking-wider text-[9px] pb-2">
-                <th className="py-2.5">Migrated At</th>
-                <th className="py-2.5">Job ID</th>
-                <th className="py-2.5">Source (Hot Node)</th>
-                <th className="py-2.5">Destination (Target Node)</th>
-                <th className="py-2.5">Routing Status</th>
-                <th className="py-2.5">Trigger Reason</th>
+                <th className="py-2.5">Reallocated At</th>
+                <th className="py-2.5">Task ID</th>
+                <th className="py-2.5">From Server</th>
+                <th className="py-2.5">To Server</th>
+                <th className="py-2.5">Status</th>
+                <th className="py-2.5">Reason</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border font-mono text-zinc-300">
@@ -63,10 +63,10 @@ export default async function SchedulerPage() {
                   <td className="py-3 text-[10px] text-zinc-500">
                     {new Date(placement.migrated_at).toLocaleString()}
                   </td>
-                  <td className="py-3 font-bold text-white">{placement.job_id}</td>
+                  <td className="py-3 font-bold text-white">{placement.job_id.replace('Job-', 'Task ')}</td>
                   <td className="py-3">
                     <span className="px-2 py-0.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded text-[10px] font-bold">
-                      {placement.source_node}
+                      {placement.source_node.replace('Node-', 'Server ')}
                     </span>
                   </td>
                   <td className="py-3">
@@ -75,7 +75,7 @@ export default async function SchedulerPage() {
                         ? 'bg-zinc-800 border border-zinc-700 text-zinc-400'
                         : 'bg-primary/10 border border-primary/20 text-primary'
                     }`}>
-                      {placement.target_node}
+                      {placement.target_node.replace('Node-', 'Server ')}
                     </span>
                   </td>
                   <td className="py-3">
@@ -85,13 +85,13 @@ export default async function SchedulerPage() {
                     </span>
                   </td>
                   <td className="py-3 text-[11px] font-sans text-zinc-400 max-w-[260px] truncate" title={placement.reason}>
-                    {placement.reason}
+                    {placement.reason.replace('GPU', 'Server').replace('Node-', 'Server ').replace('node', 'server')}
                   </td>
                 </tr>
               ))}
               {safePlacements.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-16 text-center text-zinc-550 font-mono text-xs uppercase">
+                  <td colSpan={6} className="py-16 text-center text-zinc-555 font-mono text-xs uppercase">
                     No placement or workload migration events.
                   </td>
                 </tr>

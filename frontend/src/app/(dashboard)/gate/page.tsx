@@ -28,13 +28,13 @@ export default async function GatePage() {
       {/* Page Header */}
       <div className="card p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white leading-none tracking-tight">Execution Gate Manager</h2>
-          <p className="text-xs text-zinc-400 mt-1.5">Human-in-the-loop audit logs and authorization controls</p>
+          <h2 className="text-xl font-bold text-white leading-none tracking-tight">Task Approvals</h2>
+          <p className="text-xs text-zinc-400 mt-1.5">Review and approve recommended system actions</p>
         </div>
         <div className="flex gap-3">
           <span className="font-mono text-xs font-bold px-3 py-1.5 bg-red-500/10 text-red-450 rounded-xl border border-red-500/20 flex items-center gap-1.5">
             <Lock className="w-3.5 h-3.5" />
-            {safePending.length} Actions Blocked
+            {safePending.length} Actions Pending
           </span>
         </div>
       </div>
@@ -54,9 +54,9 @@ export default async function GatePage() {
               <div>
                 <h3 className="text-sm font-semibold text-white flex items-center gap-1.5">
                   <History className="w-4 h-4 text-primary" />
-                  Operator Decision Audit Log
+                  Decision History Log
                 </h3>
-                <p className="text-[10px] text-zinc-450 font-mono uppercase tracking-wider mt-0.5">Logs of approved and rejected autonomous scheduling actions</p>
+                <p className="text-[10px] text-zinc-450 font-mono uppercase tracking-wider mt-0.5">History of approved and rejected server optimization tasks</p>
               </div>
             </div>
 
@@ -65,7 +65,7 @@ export default async function GatePage() {
                 <thead>
                   <tr className="border-b border-border text-zinc-400 font-mono uppercase tracking-wider text-[9px] pb-2">
                     <th className="py-2.5">Decision Time</th>
-                    <th className="py-2.5">Resource</th>
+                    <th className="py-2.5">Server</th>
                     <th className="py-2.5">Action Type</th>
                     <th className="py-2.5">Status</th>
                     <th className="py-2.5">Approved By</th>
@@ -77,9 +77,9 @@ export default async function GatePage() {
                       <td className="py-3 text-[10px] text-zinc-500">
                         {req.approved_at ? new Date(req.approved_at).toLocaleString() : '—'}
                       </td>
-                      <td className="py-3 font-bold text-white">{req.target_resource}</td>
+                      <td className="py-3 font-bold text-white">{req.target_resource.replace('Node-', 'Server ')}</td>
                       <td className="py-3 text-[11px] text-zinc-400 truncate max-w-[120px]" title={req.action_type}>
-                        {req.action_type}
+                        {req.action_type === 'MIGRATE' ? 'Move Task' : req.action_type === 'KILL' ? 'Stop Process' : req.action_type}
                       </td>
                       <td className="py-3">
                         <span className={`px-2 py-0.5 rounded-full border text-[9px] font-bold ${
@@ -87,7 +87,7 @@ export default async function GatePage() {
                             ? 'bg-primary/10 border-primary/20 text-primary' 
                             : 'bg-red-500/10 border-red-500/20 text-red-400'
                         }`}>
-                          {req.status}
+                          {req.status === 'APPROVED' ? 'APPROVED' : req.status === 'REJECTED' ? 'REJECTED' : req.status}
                         </span>
                       </td>
                       <td className="py-3 text-zinc-400 font-sans text-[11px] flex items-center gap-1">
@@ -113,3 +113,5 @@ export default async function GatePage() {
     </div>
   );
 }
+
+

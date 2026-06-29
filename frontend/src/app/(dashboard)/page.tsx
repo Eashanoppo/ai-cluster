@@ -65,119 +65,135 @@ export default async function DashboardOverview() {
   return (
     <div className="space-y-6 font-sans">
       
-      {/* Overview Cards Row */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        
-        {/* Status card */}
-        <div className="card p-5 flex items-center justify-between animate-fade-up">
-          <div>
-            <span className="block text-mono-label text-zinc-400">Fleet Status</span>
-            <span className="text-2xl font-bold text-white mt-1 block">Nominal</span>
-          </div>
-          <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-            <ShieldCheck className="w-6 h-6" />
-          </div>
+      {/* Welcome Hero Banner with Overview Cards Grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 bg-card border border-border p-6 rounded-lg animate-fade-up">
+        {/* Left Side: Welcoming message */}
+        <div className="xl:col-span-5 flex flex-col justify-center space-y-2">
+          <h2 className="text-xl font-bold text-white tracking-tight">Welcome back, admin.</h2>
+          <p className="text-sm text-zinc-400 leading-relaxed">
+            All system servers are operating normally. Underutilized resources are being dynamically redirected to optimize operation costs, saving <span className="text-primary font-bold">${totalSaved.toFixed(2)}</span> this period. There are currently <span className="text-amber-400 font-bold">{safeApprovals.length} approvals</span> requiring review.
+          </p>
         </div>
 
-        {/* Max Temp */}
-        <div className="card p-5 flex items-center justify-between animate-fade-up delay-75">
-          <div>
-            <span className="block text-mono-label text-zinc-400">Max GPU Temp</span>
-            <span className={`text-2xl font-bold mt-1 block ${maxTemp >= 85 ? 'text-red-400' : 'text-white'}`}>
-              {maxTemp > 0 ? `${maxTemp.toFixed(1)}°C` : '—'}
-            </span>
+        {/* Right Side: 2x2 Grid of KPI Cards */}
+        <div className="xl:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Status card */}
+          <div className="card p-4 flex items-center justify-between hover:translate-y-0">
+            <div>
+              <span className="block text-mono-label text-zinc-500">System Status</span>
+              <span className="text-lg font-bold text-white mt-1 block">Healthy</span>
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
           </div>
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${maxTemp >= 85 ? 'bg-red-500/15 text-red-400' : 'bg-primary/10 text-primary'}`}>
-            <Thermometer className="w-6 h-6" />
-          </div>
-        </div>
 
-        {/* Wasted Cost */}
-        <div className="card p-5 flex items-center justify-between animate-fade-up delay-150">
-          <div>
-            <span className="block text-mono-label text-zinc-400">Reclaimed Waste</span>
-            <span className="text-2xl font-bold text-white mt-1 block">${totalSaved.toFixed(2)}</span>
+          {/* Peak Temp */}
+          <div className="card p-4 flex items-center justify-between hover:translate-y-0">
+            <div>
+              <span className="block text-mono-label text-zinc-500">Peak Temperature</span>
+              <span className={`text-lg font-bold mt-1 block ${maxTemp >= 85 ? 'text-red-400' : 'text-white'}`}>
+                {maxTemp > 0 ? `${maxTemp.toFixed(1)}°C` : '—'}
+              </span>
+            </div>
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${maxTemp >= 85 ? 'bg-red-500/15 text-red-400' : 'bg-primary/10 text-primary'}`}>
+              <Thermometer className="w-5 h-5" />
+            </div>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-            <DollarSign className="w-6 h-6" />
-          </div>
-        </div>
 
-        {/* Pending approvals */}
-        <div className="card p-5 flex items-center justify-between animate-fade-up delay-225">
-          <div>
-            <span className="block text-mono-label text-zinc-400">Execution Gate</span>
-            <span className="text-2xl font-bold text-white mt-1 block">{safeApprovals.length} Pending</span>
+          {/* Total Saved */}
+          <div className="card p-4 flex items-center justify-between hover:translate-y-0">
+            <div>
+              <span className="block text-mono-label text-zinc-500">Total Savings</span>
+              <span className="text-lg font-bold text-white mt-1 block">${totalSaved.toFixed(2)}</span>
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+              <DollarSign className="w-5 h-5" />
+            </div>
           </div>
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${safeApprovals.length > 0 ? 'bg-amber-500/15 text-amber-400' : 'bg-zinc-800/40 text-zinc-500'}`}>
-            <Lock className="w-6 h-6" />
+
+          {/* Pending approvals */}
+          <div className="card p-4 flex items-center justify-between hover:translate-y-0">
+            <div>
+              <span className="block text-mono-label text-zinc-500">Approvals Required</span>
+              <span className="text-lg font-bold text-white mt-1 block">{safeApprovals.length} Pending</span>
+            </div>
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${safeApprovals.length > 0 ? 'bg-amber-500/15 text-amber-400' : 'bg-zinc-800/40 text-zinc-500'}`}>
+              <Lock className="w-5 h-5" />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Row 1: GPU Fleet Node Status (128 Nodes) & Sentinel Chart (50/50 split) */}
+      {/* Two Column Layout: Left Column (Forecast & Map), Right Column (Approvals, Logs, & Reallocations) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* Node Status Grid */}
-        <NodeTopology />
-
-        {/* Sentinel Prediction Chart */}
-        <div className="card p-5 flex flex-col justify-between animate-fade-up delay-300">
-          <div className="flex justify-between items-center mb-4 pb-3 border-b border-border flex-shrink-0">
-            <div>
-              <h2 className="text-sm font-semibold text-white flex items-center gap-1.5">
-                <ShieldAlert className="w-4 h-4 text-primary" />
-                Cluster Thermal.Prediction.Model
-              </h2>
-              <p className="text-mono-label text-zinc-400 mt-0.5">Failure Probability Forecast</p>
-            </div>
-          </div>
-          <div className="flex-1 min-h-[200px] h-full">
-            {safePredictions.length > 0 ? (
-              <SentinelChart data={safePredictions} />
-            ) : (
-              <div className="h-full flex items-center justify-center font-mono text-xs text-zinc-500">AWAITING TELEMETRY...</div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Row 2: Scheduler Migrations, Live DCGM Telemetry Log, & Execution Gate (33/33/33 split) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Active Workload Scheduler */}
-        <div className="card p-5 flex flex-col animate-fade-up delay-300">
-          <div className="flex justify-between items-center mb-4 pb-3 border-b border-border flex-shrink-0">
-            <div>
-              <h2 className="text-sm font-semibold text-white flex items-center gap-1.5">
-                <ArrowRightLeft className="w-4 h-4 text-primary" />
-                Scheduler Migrations
-              </h2>
-              <p className="text-mono-label text-zinc-400 mt-0.5">Automated Workload Routing</p>
-            </div>
-          </div>
-          <div className="flex-1 overflow-y-auto space-y-2">
-            {safePlacements.slice(0, 5).map((p: Placement) => (
-              <div key={p.id} className="p-3 bg-surface-hover border border-border rounded-xl flex justify-between items-center text-xs font-mono">
-                <div>
-                  <p className="font-bold text-white">{p.job_id}</p>
-                  <p className="text-mono-label text-zinc-400 mt-0.5">MIGRATE: {p.source_node} → {p.target_node}</p>
-                </div>
-                <CheckCircle className="w-4 h-4 text-primary" />
+        {/* Left Column: Failure Forecast & Server Map Grid */}
+        <div className="space-y-6 flex flex-col">
+          
+          {/* Failure Forecast */}
+          <div className="card p-5 flex flex-col justify-between animate-fade-up">
+            <div className="flex justify-between items-center mb-4 pb-3 border-b border-border flex-shrink-0">
+              <div>
+                <h2 className="text-sm font-semibold text-white flex items-center gap-1.5">
+                  <ShieldAlert className="w-4 h-4 text-primary" />
+                  System Failure Forecast
+                </h2>
+                <p className="text-mono-label text-zinc-500 mt-0.5">Failure Probability Outlook</p>
               </div>
-            ))}
-            {safePlacements.length === 0 && (
-              <p className="text-center font-mono text-xs text-zinc-500 py-12">SYS.IDLE (No placements active)</p>
-            )}
+            </div>
+            <div className="flex-1 min-h-[220px] h-full">
+              {safePredictions.length > 0 ? (
+                <SentinelChart data={safePredictions} />
+              ) : (
+                <div className="h-full flex items-center justify-center font-mono text-xs text-zinc-500">Awaiting system data...</div>
+              )}
+            </div>
           </div>
+
+          {/* Server Map Grid */}
+          <NodeTopology />
         </div>
 
-        {/* Live DCGM Telemetry Log */}
-        <TelemetryLog />
+        {/* Right Column: Approvals, Logs, and Job Reallocations */}
+        <div className="space-y-6 flex flex-col">
+          
+          {/* Action Approvals Center */}
+          <ApprovalGate requests={safeApprovals} />
 
-        {/* Execution Gate */}
-        <ApprovalGate requests={safeApprovals} />
+          {/* Live System Activity Logs */}
+          <TelemetryLog />
 
+          {/* Job Reallocations */}
+          <div className="card p-5 flex flex-col animate-fade-up">
+            <div className="flex justify-between items-center mb-4 pb-3 border-b border-border flex-shrink-0">
+              <div>
+                <h2 className="text-sm font-semibold text-white flex items-center gap-1.5">
+                  <ArrowRightLeft className="w-4 h-4 text-primary" />
+                  Job Reallocations
+                </h2>
+                <p className="text-mono-label text-zinc-500 mt-0.5">Active Task Reallocations</p>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto space-y-2">
+              {safePlacements.slice(0, 5).map((p: Placement) => (
+                <div key={p.id} className="p-3 bg-surface-hover border border-border rounded-lg flex justify-between items-center text-xs font-mono">
+                  <div>
+                    <p className="font-bold text-white">Task {p.job_id.replace('Job-', '')}</p>
+                    <p className="text-mono-label text-zinc-500 mt-0.5">
+                      Move: Server {p.source_node.replace('Node-', '')} ➔ Server {p.target_node.replace('Node-', '')}
+                    </p>
+                  </div>
+                  <CheckCircle className="w-4 h-4 text-primary" />
+                </div>
+              ))}
+              {safePlacements.length === 0 && (
+                <p className="text-center font-mono text-xs text-zinc-500 py-12">All tasks assigned. No active reallocations.</p>
+              )}
+            </div>
+          </div>
+
+        </div>
       </div>
       
       {/* Bottom spacer for viewport breathing room */}
@@ -185,3 +201,4 @@ export default async function DashboardOverview() {
     </div>
   );
 }
+
