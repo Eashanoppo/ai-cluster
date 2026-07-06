@@ -80,11 +80,11 @@ export function CopilotChat() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-surface border border-border overflow-hidden shadow-2xl font-sans rounded-none">
+    <div className="flex flex-col h-full bg-surface border border-border overflow-hidden shadow-2xl font-sans rounded-xl">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-surface border-b border-border">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-none bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
             <Sparkles className="w-4 h-4" />
           </div>
           <div>
@@ -94,7 +94,7 @@ export function CopilotChat() {
         </div>
         <button 
           onClick={() => setShowConfig(!showConfig)}
-          className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800/40 rounded-none transition-colors outline-none glow-focus cursor-pointer"
+          className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800/40 rounded-lg transition-colors outline-none glow-focus cursor-pointer"
         >
           <Settings className="w-4 h-4" />
         </button>
@@ -108,7 +108,7 @@ export function CopilotChat() {
             <select 
               value={provider} 
               onChange={(e) => setProvider(e.target.value)}
-              className="w-full bg-surface border border-border text-white rounded-none px-2 py-1.5 focus:outline-none focus:border-primary transition-colors cursor-pointer"
+              className="w-full bg-surface border border-border text-white rounded-lg px-2 py-1.5 focus:outline-none focus:border-primary transition-colors cursor-pointer"
             >
               <option value="ollama">Ollama (Local)</option>
               <option value="openrouter">OpenRouter (Cloud)</option>
@@ -120,7 +120,7 @@ export function CopilotChat() {
               type="text" 
               value={model} 
               onChange={(e) => setModel(e.target.value)}
-              className="w-full bg-surface border border-border text-white rounded-none px-2 py-1.5 focus:outline-none focus:border-primary transition-colors font-mono"
+              className="w-full bg-surface border border-border text-white rounded-lg px-2 py-1.5 focus:outline-none focus:border-primary transition-colors font-mono"
             />
           </div>
         </div>
@@ -131,10 +131,10 @@ export function CopilotChat() {
         {messages.map((msg, idx) => (
           <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`flex flex-col max-w-[85%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-              <div className={`px-4 py-3 rounded-none text-sm leading-relaxed ${
+              <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
                 msg.role === 'user' 
-                  ? 'bg-primary text-black font-semibold shadow-md shadow-primary/10' 
-                  : 'bg-zinc-950 border border-border text-zinc-200'
+                  ? 'bg-primary text-black font-semibold shadow-md shadow-primary/10 rounded-br-sm' 
+                  : 'bg-zinc-950 border border-border text-zinc-200 rounded-bl-sm'
               }`}>
                 {msg.content}
               </div>
@@ -147,7 +147,7 @@ export function CopilotChat() {
         {isLoading && (
           <div className="flex justify-start">
             <div className="flex flex-col items-start max-w-[85%]">
-              <div className="px-4 py-3 bg-zinc-950 border border-border text-zinc-400 rounded-none text-sm flex items-center gap-2">
+              <div className="px-4 py-3 bg-zinc-950 border border-border text-zinc-400 rounded-2xl rounded-bl-sm text-sm flex items-center gap-2">
                 <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
                 <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
                 <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
@@ -161,7 +161,7 @@ export function CopilotChat() {
 
       {/* Input Form */}
       <form onSubmit={handleChat} className="p-3 border-t border-border bg-surface">
-        <div className="flex items-center gap-2 bg-zinc-900 border border-border rounded-none px-3 py-1.5 focus-within:border-primary transition-colors">
+        <div className="flex items-center gap-2 bg-zinc-900 border border-border rounded-xl px-3 py-1.5 focus-within:border-primary transition-colors">
           <input 
             type="text" 
             value={chatInput}
@@ -173,7 +173,7 @@ export function CopilotChat() {
           <button 
             type="submit"
             disabled={isLoading || !chatInput.trim()}
-            className="p-1.5 bg-primary text-black hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:hover:bg-primary flex items-center justify-center rounded-none outline-none glow-focus cursor-pointer"
+            className="p-1.5 bg-primary text-black hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:hover:bg-primary flex items-center justify-center rounded-lg outline-none glow-focus cursor-pointer"
           >
             <Send className="w-4 h-4" />
           </button>

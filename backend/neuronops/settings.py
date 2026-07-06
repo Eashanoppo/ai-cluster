@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'gate',
     'drf_spectacular',
     'telemetry',
+    'simulator',
 ]
 
 MIDDLEWARE = [
@@ -175,4 +176,11 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
 }
+
+# --- Simulator / Antigravity Settings ---
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
+
+# --- Media Files Settings ---
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 

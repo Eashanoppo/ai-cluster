@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { pollLatestTelemetry } from '../../actions/telemetry';
-import { Thermometer, Zap, Database } from 'lucide-react';
+import { Thermometer, Zap, Database, Layers } from 'lucide-react';
 
 interface TelemetryNode {
   id: number;
@@ -25,13 +25,13 @@ export function NodeTopology() {
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-
-
   const fetchTelemetry = async () => {
     try {
       const data = await pollLatestTelemetry();
       if (data && data.length > 0) {
-        setNodes(data);
+        // Ensure sorted by Node ID (Node-001 to Node-128)
+        const sorted = [...data].sort((a, b) => a.node_id.localeCompare(b.node_id));
+        setNodes(sorted);
         setError(null);
       } else {
         setError("Connection Lost");
@@ -55,7 +55,6 @@ export function NodeTopology() {
     const cellRect = e.currentTarget.getBoundingClientRect();
     const containerRect = containerRef.current.getBoundingClientRect();
     
-    // Position tooltip above the hovered node cell center
     setTooltipPos({
       x: cellRect.left - containerRect.left + cellRect.width / 2,
       y: cellRect.top - containerRect.top - 8,
@@ -72,9 +71,16 @@ export function NodeTopology() {
     return (
       <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm animate-pulse">
         <div className="h-4 bg-zinc-800 rounded w-1/3 mb-4"></div>
-        <div className="grid grid-cols-8 sm:grid-cols-16 gap-1.5">
-          {Array.from({ length: 128 }).map((_, i) => (
-            <div key={i} className="aspect-square bg-zinc-900 rounded-lg"></div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, qi) => (
+            <div key={qi} className="bg-zinc-900/35 p-4 rounded-xl border border-zinc-800/40">
+              <div className="h-3 bg-zinc-800 rounded w-1/2 mb-3"></div>
+              <div className="grid grid-cols-8 gap-1">
+                {Array.from({ length: 32 }).map((_, i) => (
+                  <div key={i} className="aspect-square bg-zinc-800/80 rounded-sm"></div>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </div>
@@ -93,78 +99,132 @@ export function NodeTopology() {
     );
   }
 
-  // Count metrics for quick indicators
-  const criticalCount = nodes.filter(n => n.temperature_celsius >= 85 || n.gpu_utilization_percent >= 90).length;
-  const highLoadCount = nodes.filter(n => n.gpu_utilization_percent >= 70 && n.gpu_utilization_percent < 90 && n.temperature_celsius < 85).length;
-  const idleCount = nodes.filter(n => n.gpu_utilization_percent < 5 && n.temperature_celsius < 85).length;
-  const nominalCount = nodes.length - criticalCount - highLoadCount - idleCount;
+  // Count active / idle nodes
+  const activeCount = nodes.filter(n => n.gpu_utilization_percent >= 5).length;
+  const offCount = nodes.length - activeCount;
+
+  // Split nodes into 4 quadrants
+  const quadrants = [
+    {
+      id: 1,
+      title: "RTX 3090 Build (Tier 1)",
+      nodes: nodes.slice(0, 32),
+      activeColor: "#a3be8c", // Green
+      borderColor: "#88a872",
+      activeText: "text-black",
+    },
+    {
+      id: 2,
+      title: "RTX 4090 Build (Tier 2)",
+      nodes: nodes.slice(32, 64),
+      activeColor: "#ebcb8b", // Yellow
+      borderColor: "#d4b070",
+      activeText: "text-black",
+    },
+    {
+      id: 3,
+      title: "RTX 5090 Build (Tier 3)",
+      nodes: nodes.slice(64, 96),
+      activeColor: "#d08770", // Orange
+      borderColor: "#b86d56",
+      activeText: "text-black",
+    },
+    {
+      id: 4,
+      title: "Blackwell B200 Build (Tier 4)",
+      nodes: nodes.slice(96, 128),
+      activeColor: "#bf616a", // Red
+      borderColor: "#a54c54",
+      activeText: "text-white",
+    },
+  ];
 
   return (
     <div ref={containerRef} className="card p-5 font-sans relative animate-fade-up delay-300">
-      {/* Header section with inline summaries */}
+      {/* Header section with live summaries */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 pb-4 border-b border-border">
         <div>
-          <h2 className="text-sm font-semibold text-white">Server Map Grid (128 Servers)</h2>
-          <p className="text-mono-label text-zinc-500 mt-0.5">Live Server Map</p>
+          <h2 className="text-sm font-semibold text-white">Cluster Map Partition</h2>
+          <p className="text-mono-label text-zinc-500 mt-0.5">Hardware Quadrant Allocation</p>
         </div>
         
         {/* Status Indicators bar */}
         <div className="flex flex-wrap gap-3 font-mono text-[9px] uppercase tracking-wider font-bold">
           <div className="flex items-center gap-1.5 px-2 py-1 bg-zinc-800/40 border border-zinc-700 text-zinc-400 rounded-lg animate-fade-up">
             <span className="w-1.5 h-1.5 bg-zinc-500 rounded-full"></span>
-            Inactive: {idleCount}
+            OFF / STANDBY: {offCount}
           </div>
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-primary/10 border border-primary/20 text-primary rounded-lg animate-fade-up delay-75">
-            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
-            Normal: {nominalCount}
-          </div>
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-lg animate-fade-up delay-150">
-            <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
-            Active: {highLoadCount}
-          </div>
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-red-500/15 border border-red-500/30 text-red-400 rounded-lg animate-fade-up delay-225">
-            <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></span>
-            Warning: {criticalCount}
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-[#88c0d0]/10 border border-[#88c0d0]/20 text-[#88c0d0] rounded-lg animate-fade-up delay-75">
+            <span className="w-1.5 h-1.5 bg-[#88c0d0] rounded-full animate-pulse"></span>
+            ACTIVE SIMULATION: {activeCount}
           </div>
         </div>
       </div>
 
-      {/* Grid container */}
-      <div className="grid grid-cols-[repeat(16,minmax(0,1fr))] md:grid-cols-[repeat(8,minmax(0,1fr))] gap-1 md:gap-1.5 select-none w-full">
-        {nodes.map((node) => {
-          const isSpike = node.temperature_celsius >= 85;
-          const isIdle = node.gpu_utilization_percent < 5;
-          const isHighLoad = node.gpu_utilization_percent >= 70 && node.gpu_utilization_percent < 90;
-          const isMaxLoad = node.gpu_utilization_percent >= 90;
-          const nodeNum = node.node_id.replace("Node-", "");
-
-          let cellClass = "";
-          if (isSpike || isMaxLoad) {
-            cellClass = "bg-red-500 hover:bg-red-600 text-white border-red-600 shadow-md shadow-red-950 ring-2 ring-red-500/30 ring-offset-0 animate-pulse";
-          } else if (isHighLoad) {
-            cellClass = "bg-amber-550 hover:bg-amber-600 text-black border-amber-600 font-semibold";
-          } else if (isIdle) {
-            cellClass = "bg-zinc-800 hover:bg-zinc-700/80 text-zinc-500 border-zinc-700";
-          } else {
-            cellClass = "bg-primary hover:bg-primary-hover text-black border-primary font-semibold";
-          }
+      {/* Quadrants Grid Layout */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full select-none">
+        {quadrants.map((quad) => {
+          const quadActiveCount = quad.nodes.filter(n => n.gpu_utilization_percent >= 5).length;
 
           return (
-            <div
-              key={node.id}
-              tabIndex={0}
-              className={`w-3.5 h-3.5 rounded-none md:w-full md:h-7 md:rounded-none flex items-center justify-center md:justify-between px-0 md:px-2 text-[9px] font-bold font-mono border transition-all duration-300 ease-in-out cursor-pointer hover:scale-105 hover:z-10 outline-none glow-focus ${cellClass}`}
-              onMouseEnter={(e) => handleNodeMouseEnter(e, node)}
-              onMouseLeave={handleNodeMouseLeave}
-              onFocus={(e) => handleNodeMouseEnter(e, node)}
-              onBlur={handleNodeMouseLeave}
+            <div 
+              key={quad.id} 
+              className={`p-4 bg-zinc-900/15 border rounded-xl flex flex-col gap-3 transition-colors ${
+                quadActiveCount > 0 
+                  ? "border-[#88c0d0]/20 bg-[#88c0d0]/5" 
+                  : "border-border/40"
+              }`}
             >
-              {/* On desktop: show node suffix */}
-              <span className="hidden md:inline">{nodeNum}</span>
-              {/* On desktop: show summary metrics */}
-              <span className="hidden lg:inline text-[8px] opacity-90 font-medium">
-                {node.temperature_celsius.toFixed(0)}°|{node.gpu_utilization_percent.toFixed(0)}%
-              </span>
+              {/* Quadrant Header */}
+              <div className="flex justify-between items-center border-b border-border/20 pb-2">
+                <span className="font-mono font-bold text-[10px] text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Layers size={11} className={quadActiveCount > 0 ? "text-[#88c0d0]" : "text-zinc-500"} />
+                  {quad.title}
+                </span>
+                <span className="font-mono text-[9px] font-bold px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">
+                  {quadActiveCount} / 32 Active
+                </span>
+              </div>
+
+              {/* Node Cells Sub-grid (4x8 configuration for 32 nodes) */}
+              <div className="grid grid-cols-8 gap-1.5">
+                {quad.nodes.map((node) => {
+                  const nodeIdx = parseInt(node.node_id.replace("Node-", "")) - 1;
+                  const isNodeActive = node.gpu_utilization_percent >= 5;
+                  const nodeNum = node.node_id.replace("Node-", "");
+
+                  let cellStyle: React.CSSProperties = {};
+                  let cellClass = "";
+
+                  if (isNodeActive) {
+                    cellStyle = {
+                      backgroundColor: quad.activeColor,
+                      borderColor: quad.borderColor,
+                    };
+                    cellClass = `${quad.activeText} shadow-sm font-semibold scale-100 hover:scale-105`;
+                    if (quad.id === 4) {
+                      cellClass += " animate-pulse";
+                    }
+                  } else {
+                    cellClass = "bg-zinc-800/40 hover:bg-zinc-800/70 text-zinc-600 border-zinc-700/50";
+                  }
+
+                  return (
+                    <div
+                      key={node.id}
+                      tabIndex={0}
+                      className={`aspect-square rounded-md flex flex-col items-center justify-center text-[9px] font-bold font-mono border transition-all duration-300 ease-in-out cursor-pointer outline-none glow-focus ${cellClass}`}
+                      style={cellStyle}
+                      onMouseEnter={(e) => handleNodeMouseEnter(e, node)}
+                      onMouseLeave={handleNodeMouseLeave}
+                      onFocus={(e) => handleNodeMouseEnter(e, node)}
+                      onBlur={handleNodeMouseLeave}
+                    >
+                      <span>{nodeNum}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           );
         })}
@@ -173,7 +233,7 @@ export function NodeTopology() {
       {/* Floating Tooltip Component */}
       {hoveredNode && tooltipPos && (
         <div
-          className="absolute z-50 bg-surface/95 backdrop-blur-md text-white text-xs p-4 rounded-xl shadow-xl w-60 pointer-events-none transform -translate-x-1/2 -translate-y-full border border-border flex flex-col gap-2 font-sans transition-all duration-200 ease-out"
+          className="absolute z-50 bg-surface/95 backdrop-blur-md text-white text-xs p-4 rounded-xl shadow-xl w-60 pointer-events-none transform -translate-x-1/2 -translate-y-full border border-border flex flex-col gap-2 font-sans transition-all duration-200 ease-out animate-ws-fade-in"
           style={{ 
             left: `${tooltipPos.x}px`, 
             top: `${tooltipPos.y}px` 
@@ -182,14 +242,10 @@ export function NodeTopology() {
           {/* Tooltip Header */}
           <div className="flex justify-between items-center border-b border-border pb-1.5 mb-1.5">
             <span className="font-mono font-bold tracking-tight text-white">{hoveredNode.node_id.replace('Node-', 'Server ')}</span>
-            {hoveredNode.temperature_celsius >= 85 || hoveredNode.gpu_utilization_percent >= 90 ? (
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-red-500 text-white animate-pulse">WARNING</span>
-            ) : hoveredNode.gpu_utilization_percent >= 70 ? (
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-amber-500 text-black">ACTIVE</span>
-            ) : hoveredNode.gpu_utilization_percent < 5 ? (
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-zinc-800 text-zinc-400 border border-zinc-700">INACTIVE</span>
+            {hoveredNode.gpu_utilization_percent >= 5 ? (
+              <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-[#88c0d0] text-black">ACTIVE</span>
             ) : (
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-primary text-black">NORMAL</span>
+              <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-zinc-800 text-zinc-400 border border-zinc-700">STANDBY</span>
             )}
           </div>
 
@@ -197,10 +253,10 @@ export function NodeTopology() {
           <div className="grid grid-cols-2 gap-y-2 gap-x-3">
             {/* Temp */}
             <div className="flex items-center gap-1.5">
-              <Thermometer className={`w-3.5 h-3.5 ${hoveredNode.temperature_celsius >= 85 ? 'text-red-400' : 'text-zinc-400'}`} />
+              <Thermometer className={`w-3.5 h-3.5 ${hoveredNode.gpu_utilization_percent >= 5 ? 'text-[#88c0d0]' : 'text-zinc-400'}`} />
               <div>
                 <span className="block text-[8px] text-zinc-400 font-mono uppercase tracking-wider">Temperature</span>
-                <span className={`text-[11px] font-bold font-mono ${hoveredNode.temperature_celsius >= 85 ? 'text-red-400' : 'text-zinc-200'}`}>
+                <span className={`text-[11px] font-bold font-mono ${hoveredNode.gpu_utilization_percent >= 5 ? 'text-[#88c0d0]' : 'text-zinc-200'}`}>
                   {hoveredNode.temperature_celsius.toFixed(1)}°C
                 </span>
               </div>
@@ -244,4 +300,3 @@ export function NodeTopology() {
     </div>
   );
 }
-

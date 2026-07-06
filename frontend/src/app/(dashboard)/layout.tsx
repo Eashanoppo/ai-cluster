@@ -2,10 +2,12 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { History, Sparkles } from 'lucide-react';
+import { Sparkles, FlaskConical } from 'lucide-react';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { CopilotChat } from '../components/ui/Copilot';
 import Sidebar from '../components/ui/Sidebar';
+import HeaderNotifications from '../components/ui/HeaderNotifications';
+import WorkstationStatusBanner from '../components/ui/WorkstationStatusBanner';
 
 export default function DashboardLayout({
   children,
@@ -45,17 +47,25 @@ export default function DashboardLayout({
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              {/* Legacy UI Button */}
-              <Link 
-                href="/oldfrontend"
-                className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-border bg-surface text-zinc-400 hover:bg-surface-hover hover:text-white hover:border-zinc-700 text-sm font-semibold transition-all shadow-sm outline-none glow-focus"
+             <div className="flex items-center gap-3">
+              {/* Header notifications dropdown */}
+              <HeaderNotifications />
+
+              {/* Workstation Button */}
+              <Link
+                href="/workstation"
+                id="nav-workstation-cta"
+                className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-[#5e81ac]/30 bg-[#5e81ac]/10 text-[#5e81ac] hover:bg-[#5e81ac]/20 hover:border-[#5e81ac]/60 text-sm font-semibold transition-all shadow-sm outline-none glow-focus font-mono text-xs"
               >
-                <History className="w-4 h-4 text-zinc-500" />
-                <span className="hidden sm:inline">Legacy Dashboard</span>
+                <FlaskConical className="w-4 h-4" />
+                <span className="hidden sm:inline">Workstation</span>
               </Link>
             </div>
           </header>
+
+
+          {/* Workstation simulation status banner */}
+          <WorkstationStatusBanner />
   
           {/* Main Content & Copilot Overlay Area */}
           <div className="flex-1 flex flex-row min-w-0 overflow-hidden bg-background">

@@ -15,7 +15,8 @@ import {
   ChevronRight,
   Settings,
   HelpCircle,
-  User
+  User,
+  History
 } from "lucide-react";
 import { logoutAction } from "../../actions/auth";
 import { cn } from "../../../lib/utils";
@@ -141,6 +142,22 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           {isCollapsed && (
             <span className="absolute left-full ml-4 px-2 py-1 text-xs bg-zinc-950 border border-border text-white invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap pointer-events-none z-50">
               Settings
+            </span>
+          )}
+        </Link>
+
+        {/* Legacy Dashboard (under Settings) */}
+        <Link
+          href="/oldfrontend"
+          className={cn(
+            "flex items-center gap-3 px-3 py-2 text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-850 rounded-md group relative"
+          )}
+        >
+          <History size={18} />
+          {!isCollapsed && <span>Legacy UI</span>}
+          {isCollapsed && (
+            <span className="absolute left-full ml-4 px-2 py-1 text-xs bg-zinc-950 border border-border text-white invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap pointer-events-none z-50">
+              Legacy UI
             </span>
           )}
         </Link>

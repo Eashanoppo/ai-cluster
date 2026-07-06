@@ -32,10 +32,10 @@ export async function loginAction(formData: FormData) {
       return { error: 'Invalid token structure from server' }
     }
 
-    // Set httpOnly cookie
+    // Set non-httpOnly cookie to allow client-side API auth in workstation views
     const cookieStore = await cookies()
     cookieStore.set('jwt', accessToken, {
-      httpOnly: true,
+      httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
