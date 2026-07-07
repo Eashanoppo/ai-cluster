@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Paperclip, Sliders, AlertTriangle, Cpu, Check, Play, RefreshCw } from "lucide-react";
 import { assessAllocation, TASK_SPECS, TIERS, WorkloadParams } from "../../services/workloadEngine";
-import { createSimulationRun } from "../../services/api";
+import { createSimulationRun, getPlacements } from "../../services/api";
 import { cn } from "../../../lib/utils";
 
 interface Message {
@@ -29,7 +29,9 @@ export default function WorkstationChat({
 }: WorkstationChatProps) {
   const [inputText, setInputText] = useState("");
   const [taskType, setTaskType] = useState("ocr_data_retrieval");
-  const [allocatedNodes, setAllocatedNodes] = useState(16);
+
+  const [userCount, setUserCount] = useState(1);
+  const [autoSimulate, setAutoSimulate] = useState(false);
   
   // Workload configuration state
   const [fileInputSizeGb, setFileInputSizeGb] = useState(1.0);
@@ -84,22 +86,24 @@ export default function WorkstationChat({
   // Compute real-time allocation result based on sliders
   const params: WorkloadParams = useMemo(() => ({
     taskType,
+    userCount,
     fileInputSizeGb,
     imageCount,
     thinkingDepth,
     complexityFactor,
-  }), [taskType, fileInputSizeGb, imageCount, thinkingDepth, complexityFactor]);
+  }), [taskType, userCount, fileInputSizeGb, imageCount, thinkingDepth, complexityFactor]);
 
   const result = useMemo(() => {
-    return assessAllocation(params, allocatedNodes);
-  }, [params, allocatedNodes]);
+    const initial = assessAllocation(params, 1);
+    return assessAllocation(params, initial.requiredNodes);
+  }, [params]);
 
   // Set default nodes when task type changes
   const handleTaskSelect = (type: string) => {
     setTaskType(type);
     const spec = TASK_SPECS[type];
     if (spec) {
-      setAllocatedNodes(spec.baseNodes);
+      
       
       const prefilledPrompts: Record<string, string> = {
         ocr_data_retrieval: "Extract layout text and tabular metadata from /dataset/archive_pdf/.",
@@ -107,6 +111,10 @@ export default function WorkstationChat({
         batch_vision: "Perform facial recognition classification across 10 uploaded client headshot photos.",
         image_editing: "Erase visual artifacts and inpaint missing backdrop patterns on background_layer_0.png.",
         large_ml_project: "Fine-tune Blackwell Llama-3-70B model using custom telemetry log datasets.",
+        video_generation: "Generate a realistic 4k fluid dynamics simulation rendering pass.",
+        code_edit: "Refactor backend/processor.py to implement async scaling logic.",
+        production_saas: "Simulate live production traffic handling across the cluster.",
+        normal_chats: "Handle incoming customer support queries using standard LLM pipeline.",
       };
       setInputText(prefilledPrompts[type] || "");
       
@@ -124,19 +132,28 @@ export default function WorkstationChat({
     setShowAttachmentMenu(false);
   };
 
-  // Run simulation
-  const handleSend = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!inputText.trim() || isRunning || result.requiresIntervention) return;
+  // Refs for auto-simulation to read latest state without triggering re-renders in useEffect
+  const stateRef = useRef({
+    activeSessionId, fileInputSizeGb, imageCount, thinkingDepth, complexityFactor, userCount, isRunning, result
+  });
+  useEffect(() => {
+    stateRef.current = { activeSessionId, fileInputSizeGb, imageCount, thinkingDepth, complexityFactor, userCount, isRunning, result };
+  });
 
-    const userPrompt = inputText;
-    setInputText("");
+  const executeSimulation = async (
+    execPrompt: string,
+    execTaskType: string,
+    execUserCount: number,
+    isAuto: boolean = false
+  ) => {
+    const s = stateRef.current;
+    if (s.isRunning) return;
     
-    const userMsgId = Math.random().toString();
+    const msgId = Math.random().toString();
     onAddMessage({
-      id: userMsgId,
+      id: msgId,
       role: "user",
-      text: userPrompt,
+      text: isAuto ? `[Auto-Simulate] ${execPrompt}` : execPrompt,
       timestamp: new Date(),
     });
 
@@ -178,10 +195,38 @@ export default function WorkstationChat({
         "Loading model weights into 192GB HBM3 VRAM...",
         "Starting epoch 1 validation sequence...",
         "Optimizing cluster parallel training paths..."
+      ],
+      video_generation: [
+        "Initializing 3D video generation pipeline...",
+        "Allocating RTX 5090 cluster rendering nodes...",
+        "Generating spatial temporal latent vectors...",
+        "Applying fluid dynamic rendering passes...",
+        "Writing output.mp4 artifact..."
+      ],
+      code_edit: [
+        "Loading codebase context...",
+        "Running static analysis on abstract syntax trees...",
+        "Generating diff patches with LLM copilot...",
+        "Running tests on refactored endpoints...",
+        "Committing code changes..."
+      ],
+      production_saas: [
+        "Ingesting 1000+ RPS API traffic...",
+        "Load balancing across microservices...",
+        "Executing tenant data isolation layers...",
+        "Running complex Postgres aggregate queries...",
+        "Returning 200 OK responses to edge network..."
+      ],
+      normal_chats: [
+        "Loading chat history context...",
+        "Processing user intent classification...",
+        "Generating response tokens stream...",
+        "Applying content moderation filters...",
+        "Finalizing conversational output..."
       ]
     };
 
-    const taskLogs = logsSequenceMap[taskType] || ["Initializing simulation...", "Piping parameters to agy CLI..."];
+    const taskLogs = logsSequenceMap[execTaskType] || ["Initializing simulation...", "Piping parameters to agy CLI..."];
     setSimulationLogs([taskLogs[0]]);
 
     const logInterval = setInterval(() => {
@@ -199,14 +244,15 @@ export default function WorkstationChat({
 
     try {
       const simRun = await createSimulationRun({
-        prompt: userPrompt,
-        chat_session_id: activeSessionId,
-        task_type: taskType,
-        allocated_nodes: allocatedNodes,
-        file_input_size_gb: fileInputSizeGb,
-        image_count: imageCount,
-        thinking_depth: thinkingDepth,
-        complexity_factor: complexityFactor,
+        prompt: execPrompt,
+        chat_session_id: s.activeSessionId,
+        task_type: execTaskType,
+        user_count: execUserCount,
+        allocated_nodes: result.requiredNodes,
+        file_input_size_gb: s.fileInputSizeGb,
+        image_count: s.imageCount,
+        thinking_depth: s.thinkingDepth,
+        complexity_factor: s.complexityFactor,
       });
 
       clearInterval(logInterval);
@@ -236,6 +282,63 @@ export default function WorkstationChat({
     }
   };
 
+  const handleSend = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!inputText.trim() || isRunning || result.requiresIntervention) return;
+
+    const userPrompt = inputText;
+    setInputText("");
+    await executeSimulation(userPrompt, taskType, userCount, false);
+  };
+
+  // Fail-over migration polling
+  const [lastPlacementId, setLastPlacementId] = useState<number>(0);
+  useEffect(() => {
+    const pollPlacements = async () => {
+      try {
+        const placements = await getPlacements();
+        if (placements && placements.length > 0) {
+          const latest = placements[0];
+          if (latest.id > lastPlacementId) {
+            setLastPlacementId(latest.id);
+            if (lastPlacementId !== 0) { // Don't notify on first load
+              onAddMessage({
+                id: Math.random().toString(),
+                role: "system",
+                text: `[AUTONOMOUS FAIL-OVER] Task migration executed! ${latest.reason}`,
+                timestamp: new Date(latest.migrated_at || Date.now()),
+              });
+            }
+          }
+        }
+      } catch (e) {
+        // Silent fail
+      }
+    };
+    
+    pollPlacements(); // initial
+    const placementInterval = setInterval(pollPlacements, 10000);
+    return () => clearInterval(placementInterval);
+  }, [lastPlacementId, onAddMessage]);
+
+  // Auto-simulate logic
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (autoSimulate) {
+      interval = setInterval(() => {
+        const s = stateRef.current;
+        if (s.isRunning) return;
+        
+        const tasks = Object.keys(TASK_SPECS);
+        const randomTask = tasks[Math.floor(Math.random() * tasks.length)];
+        const autoPrompt = `Auto-generated simulation for ${TASK_SPECS[randomTask].label}`;
+        
+        executeSimulation(autoPrompt, randomTask, s.userCount, true);
+      }, 30000);
+    }
+    return () => clearInterval(interval);
+  }, [autoSimulate]);
+
   const isNewChat = messages.length <= 1;
 
   const renderInputForm = () => {
@@ -244,32 +347,7 @@ export default function WorkstationChat({
         "select-none transition-all duration-300 w-full flex flex-col gap-4",
         isNewChat ? "max-w-2xl" : "ws-chat-input-bar bg-ws-surface border-t border-nord3/10 px-6 py-4"
       )}>
-        {/* Node Selection Card — Dedicated, separate, matches Dashboard cards shadow/hover style */}
-        <div className="ws-card p-4 space-y-3 animate-fade-up delay-75 shadow-sm">
-          <div className="flex justify-between items-center">
-            <span className="ws-label-mono text-nord2 flex items-center gap-1.5 font-bold text-[10px]">
-              <Cpu size={14} className="text-ws-interactive" />
-              Allocated Nodes
-            </span>
-            <span className="font-mono text-xs font-bold text-nord0 bg-ws-surface-raised px-2.5 py-0.5 rounded-lg border border-nord3/10 shadow-sm">
-              {allocatedNodes} nodes
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-[10px] font-mono text-nord3">1</span>
-            <input
-              type="range"
-              min="1"
-              max="32"
-              value={allocatedNodes}
-              onChange={(e) => setAllocatedNodes(parseInt(e.target.value))}
-              className="ws-slider flex-1"
-              disabled={isRunning}
-              style={{ '--slider-pct': `${((allocatedNodes - 1) / 31) * 100}%` } as React.CSSProperties}
-            />
-            <span className="text-[10px] font-mono text-nord3">32</span>
-          </div>
-        </div>
+
 
         {/* Unified Chat Input Form (Low-contrast, premium border, shadows matching Dashboard Copilot input container) */}
         <form onSubmit={handleSend} className="w-full">
@@ -314,6 +392,75 @@ export default function WorkstationChat({
                       {taskType === type && <Check size={12} className="text-ws-interactive" />}
                     </button>
                   ))}
+                </div>
+              )}
+            </div>
+
+            {/* Config Sliders Drawer Toggle */}
+            <div className="relative" ref={configDrawerRef}>
+              <button
+                type="button"
+                onClick={() => setShowConfigDrawer(!showConfigDrawer)}
+                className={cn(
+                  "p-1.5 rounded-lg text-nord2 hover:bg-ws-surface transition-colors cursor-pointer outline-none glow-focus flex items-center justify-center",
+                  showConfigDrawer && "bg-ws-surface text-ws-interactive"
+                )}
+                title="Simulation Configuration"
+              >
+                <Sliders size={16} />
+              </button>
+
+              {/* Config Drawer */}
+              {showConfigDrawer && (
+                <div className="absolute bottom-full left-0 mb-2.5 w-72 bg-ws-surface rounded-xl border border-nord3/15 shadow-lg z-50 p-4 space-y-4 animate-ws-fade-in">
+                  <div className="text-[10px] font-mono font-bold text-nord3 uppercase border-b border-nord3/10 pb-2 mb-2">
+                    Mass Simulation Settings
+                  </div>
+                  
+                  {/* User Count Slider */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] text-nord2 font-semibold">User Count</span>
+                      <span className="text-[10px] text-nord0 font-mono bg-ws-surface-raised px-1.5 rounded">{userCount} users</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="range"
+                        min="1"
+                        max="3000"
+                        value={userCount}
+                        onChange={(e) => setUserCount(parseInt(e.target.value))}
+                        className="ws-slider flex-1"
+                        style={{ '--slider-pct': `${((userCount - 1) / 2999) * 100}%` } as React.CSSProperties}
+                      />
+                    </div>
+                    <div className="text-[9px] text-nord3">Determines concurrency cluster load.</div>
+                  </div>
+
+                  {/* Auto-Simulate Toggle */}
+                  <div className="pt-2 border-t border-nord3/10">
+                    <label className="flex items-center justify-between cursor-pointer group">
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-semibold text-nord1 group-hover:text-nord0 transition-colors">Auto-Simulate (30s)</span>
+                        <p className="text-[9px] text-nord3">Fires a random task every 30s.</p>
+                      </div>
+                      <div className={cn(
+                        "w-8 h-4 rounded-full transition-colors relative",
+                        autoSimulate ? "bg-ws-interactive" : "bg-ws-surface-raised border border-nord3/20"
+                      )}>
+                        <div className={cn(
+                          "absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform duration-200 shadow-sm",
+                          autoSimulate ? "translate-x-4" : "translate-x-0.5"
+                        )} />
+                      </div>
+                      <input 
+                        type="checkbox" 
+                        className="hidden" 
+                        checked={autoSimulate}
+                        onChange={(e) => setAutoSimulate(e.target.checked)}
+                      />
+                    </label>
+                  </div>
                 </div>
               )}
             </div>

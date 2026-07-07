@@ -191,6 +191,7 @@ def workload_preview(request: Request) -> Response:
     result = assess_allocation(
         task_type=d["task_type"],
         allocated_nodes=d["allocated_nodes"],
+        user_count=d.get("user_count", 1),
         file_input_size_gb=d["file_input_size_gb"],
         image_count=d["image_count"],
         thinking_depth=d["thinking_depth"],
@@ -232,6 +233,7 @@ def simulation_runs(request: Request) -> Response:
     result = assess_allocation(
         task_type=d["task_type"],
         allocated_nodes=d["allocated_nodes"],
+        user_count=d.get("user_count", 1),
         file_input_size_gb=d["file_input_size_gb"],
         image_count=d["image_count"],
         thinking_depth=d["thinking_depth"],
@@ -243,6 +245,7 @@ def simulation_runs(request: Request) -> Response:
         task_type=d["task_type"],
         prompt=d["prompt"],
         chat_session_id=d.get("chat_session_id") or "",
+        user_count=d.get("user_count", 1),
         file_input_size_gb=d["file_input_size_gb"],
         image_count=d["image_count"],
         thinking_depth=d["thinking_depth"],
@@ -300,7 +303,7 @@ def simulation_runs(request: Request) -> Response:
             prompt_text=d["prompt"],
             chat_session_id=run.chat_session_id,
             task_type=d["task_type"],
-            task_label=task_spec.get("label", d["task_type"]),
+            task_label=str(task_spec.get("label") or d["task_type"]),
             selected_tier=result.selected_tier,
             tier_name=result.tier_name,
             required_nodes=result.required_nodes,

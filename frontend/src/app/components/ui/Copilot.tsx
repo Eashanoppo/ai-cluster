@@ -107,7 +107,15 @@ export function CopilotChat() {
             <label className="block text-mono-label text-zinc-400 mb-1">LLM Provider</label>
             <select 
               value={provider} 
-              onChange={(e) => setProvider(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setProvider(val);
+                if (val === 'openrouter' && model === 'llama3.1:8b') {
+                  setModel('meta-llama/llama-3.1-8b-instruct');
+                } else if (val === 'ollama' && model === 'meta-llama/llama-3.1-8b-instruct') {
+                  setModel('llama3.1:8b');
+                }
+              }}
               className="w-full bg-surface border border-border text-white rounded-lg px-2 py-1.5 focus:outline-none focus:border-primary transition-colors cursor-pointer"
             >
               <option value="ollama">Ollama (Local)</option>

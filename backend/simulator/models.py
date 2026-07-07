@@ -16,6 +16,10 @@ class SimulationRun(models.Model):
         ('batch_vision', 'Batch Vision Processing'),
         ('image_editing', 'Image Editing'),
         ('large_ml_project', 'Large ML Project'),
+        ('video_generation', 'Video Generation'),
+        ('code_edit', 'Code Editing'),
+        ('production_saas', 'Production SaaS Workload'),
+        ('normal_chats', 'Normal Chats'),
     ]
 
     STATUS_CHOICES = [
@@ -33,6 +37,7 @@ class SimulationRun(models.Model):
 
     # Task configuration
     task_type = models.CharField(max_length=32, choices=TASK_CHOICES)
+    user_count = models.IntegerField(default=1)
     file_input_size_gb = models.FloatField(default=1.0)
     image_count = models.IntegerField(default=0)
     thinking_depth = models.IntegerField(default=1)  # 1–5

@@ -91,6 +91,7 @@ export interface SimulationRunPayload {
   prompt?: string;
   chat_session_id?: string;
   task_type: string;
+  user_count?: number;
   allocated_nodes: number;
   file_input_size_gb: number;
   image_count: number;

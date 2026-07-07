@@ -101,10 +101,39 @@ export const TASK_SPECS: Record<string, TaskSpec> = {
     baseNodes: 64,
     minTier: 4,
   },
+  video_generation: {
+    label: "Video Generation",
+    description: "Generate and render high-resolution 3D and 2D video sequences",
+    icon: "🎥",
+    baseNodes: 32,
+    minTier: 4,
+  },
+  code_edit: {
+    label: "Code Editing",
+    description: "Automated code refactoring, bug fixes, and AI pair programming",
+    icon: "💻",
+    baseNodes: 4,
+    minTier: 1,
+  },
+  production_saas: {
+    label: "Production SaaS Workload",
+    description: "Handle large volumes of multi-tenant API requests",
+    icon: "☁️",
+    baseNodes: 48,
+    minTier: 3,
+  },
+  normal_chats: {
+    label: "Normal Chats",
+    description: "Standard conversational AI throughput",
+    icon: "💬",
+    baseNodes: 2,
+    minTier: 1,
+  },
 };
 
 export interface WorkloadParams {
   taskType: string;
+  userCount: number;
   fileInputSizeGb: number;
   imageCount: number;
   thinkingDepth: number;
@@ -141,7 +170,10 @@ export function calculateRequiredNodes(params: WorkloadParams): number {
     nodes += (params.imageCount - 1) * 4;
   }
 
-  return Math.max(1, Math.min(32, Math.floor(nodes)));
+  const concurrencyMultiplier = Math.max(1.0, params.userCount / 50.0);
+  nodes = nodes * concurrencyMultiplier;
+
+  return Math.max(1, Math.floor(nodes));
 }
 
 export function assessAllocation(
@@ -160,25 +192,14 @@ export function assessAllocation(
   let warningMessage = "";
   let requiresIntervention = false;
 
-  if (allocatedNodes < required) {
-    const deficitPct = (required - allocatedNodes) / required;
-    if (deficitPct <= 0.20) {
-      // Deficit under 20%: auto-scale up
+    if (allocatedNodes < required) {
+      // Auto-scale up regardless of deficit
       actualAllocated = required;
       verdict = "optimal";
       verdictLabel = "OPTIMAL (AUTO-SCALED UP)";
       verdictColor = "#a3be8c";
-      warningMessage = `Slight deficit under 20%. Auto-scaling allocation from ${allocatedNodes} to required ${required} nodes.`;
-    } else {
-      // Deficit over 20%: block and request human intervention
-      actualAllocated = allocatedNodes;
-      verdict = "overload";
-      verdictLabel = "OVERLOAD (INTERVENTION REQUIRED)";
-      verdictColor = "#bf616a"; // Nord Red
-      requiresIntervention = true;
-      warningMessage = `CRITICAL: Deficit too large (${Math.round(deficitPct * 100)}%). Allocate at least ${required} nodes to run.`;
-    }
-  } else if (allocatedNodes > required) {
+      warningMessage = `Autonomous SaaS scaled allocation from ${allocatedNodes} to required ${required} nodes.`;
+    } else if (allocatedNodes > required) {
     // Excess allocation: auto-scale down
     actualAllocated = required;
     verdict = "optimal";

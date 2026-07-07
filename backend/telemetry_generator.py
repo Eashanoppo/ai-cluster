@@ -75,42 +75,51 @@ def generate_telemetry():
 
     try:
         while True:
-            # Check for active workstation simulation run
-            active_run = None
-            try:
-                # Get latest run created/completed within last 120 seconds
-                cutoff = timezone.now() - timedelta(seconds=120)
-                latest = SimulationRun.objects.filter(
-                    created_at__gte=cutoff
-                ).order_by('-created_at').first()
-                if latest and latest.status in ['processing', 'completed'] and latest.verdict != 'overload':
-                    active_run = latest
-            except Exception as e:
-                print(f"Error checking SimulationRun: {e}")
+            # Check for active workstation simulation runs
+            cutoff = timezone.now() - timedelta(seconds=120)
+            recent_runs = SimulationRun.objects.filter(
+                created_at__gte=cutoff,
+                status__in=['processing', 'completed']
+            ).exclude(verdict='overload')
 
-            active_tier = None
-            active_nodes_count = 0
-            if active_run:
-                active_tier = active_run.selected_tier
-                active_nodes_count = active_run.allocated_nodes_actual or active_run.allocated_nodes
+            tier_loads = {1: 0, 2: 0, 3: 0, 4: 0}
+            for run in recent_runs:
+                nodes = run.allocated_nodes_actual or run.allocated_nodes
+                tier = run.selected_tier
+                if tier in tier_loads:
+                    tier_loads[tier] += nodes
 
-            # Determine quadrant ranges
-            # Tier 1: Nodes 1-32, Tier 2: 33-64, Tier 3: 65-96, Tier 4: 97-128
             active_node_indices = set()
-            if active_tier:
-                start_idx = (active_tier - 1) * 32
-                # Only activate the first 'active_nodes_count' nodes in this quadrant
-                for i in range(min(active_nodes_count, 32)):
-                    active_node_indices.add(start_idx + i)
+            node_tier_map = {}
+            for tier, total_nodes in tier_loads.items():
+                if total_nodes == 0: continue
+                start_idx = (tier - 1) * 32
+                assigned = 0
+                idx = start_idx
+                while assigned < total_nodes and len(active_node_indices) < 128:
+                    if idx not in active_node_indices:
+                        active_node_indices.add(idx)
+                        node_tier_map[idx] = tier
+                        assigned += 1
+                    idx = (idx + 1) % 128
+                    
+            # Random thermal anomaly / crash simulation under high load
+            # If load > 64 nodes (50% utilization), 5% chance per tick to cause a critical thermal spike > 98C
+            thermal_crash_node = None
+            if len(active_node_indices) > 64 and random.random() < 0.05:
+                # Pick a random active node to crash
+                thermal_crash_node = NODES[random.choice(list(active_node_indices))]
+                print(f"🔥 THERMAL CRASH SIMULATED ON {thermal_crash_node} 🔥")
 
             telemetry_objects = []
 
             for idx, node in enumerate(NODES):
                 hist = last_metrics[node]
                 is_active = idx in active_node_indices
-
+                
                 if is_active:
-                    spec = TIER_SPECS[active_tier]
+                    assigned_tier = node_tier_map[idx]
+                    spec = TIER_SPECS[assigned_tier]
                     vram_total = spec["vram_total_mb"]
                     hist["temp"] = apply_drift(hist["temp"], spec["temp_min"], spec["temp_max"])
                     hist["util"] = apply_drift(hist["util"], spec["util_min"], spec["util_max"])
@@ -128,6 +137,11 @@ def generate_telemetry():
                     hist["util"] = apply_drift(hist["util"], 0.0, 0.0)
                     hist["vram"] = apply_drift(hist["vram"], 0.0, 0.0)
                     hist["power"] = apply_drift(hist["power"], 8.0, 12.0)
+                
+                # Apply simulated crash if selected
+                if node == thermal_crash_node:
+                    hist["temp"] = 99.5
+                    hist["util"] = 100.0
 
                 telemetry_objects.append(
                     GpuTelemetry(
@@ -150,8 +164,8 @@ def generate_telemetry():
             deleted_count, _ = GpuTelemetry.objects.filter(timestamp__lt=prune_cutoff).delete()
 
             # Output logs
-            if active_run:
-                print(f"Tick | ACTIVE simulation found: {active_run} | Activated Tier {active_tier} (nodes count: {active_nodes_count}) | Pruned {deleted_count} records")
+            if recent_runs.exists():
+                print(f"Tick | ACTIVE simulations found: {recent_runs.count()} | Activated multiple tiers (nodes count: {sum(tier_loads.values())}) | Pruned {deleted_count} records")
             else:
                 print(f"Tick | Idle state (no active simulation) | All 128 nodes OFF | Pruned {deleted_count} records")
 

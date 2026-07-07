@@ -152,6 +152,13 @@ export default function WorkstationPage() {
             text: `Simulation failed during execution.`,
             timestamp: new Date(runTime.getTime() + 1000),
           });
+        } else if (run.status === "pending") {
+          list.push({
+            id: `assistant-pending-${run.id}`,
+            role: "system",
+            text: `Simulation pending human approval in Execution Gate due to cluster overload: ${run.response_text || 'Requires intervention.'}`,
+            timestamp: new Date(runTime.getTime() + 1000),
+          });
         } else {
           list.push({
             id: `assistant-running-${run.id}`,

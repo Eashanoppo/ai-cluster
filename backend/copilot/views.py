@@ -7,7 +7,7 @@ from django.conf import settings
 from openai import OpenAI
 
 class CopilotQuerySchema(BaseModel):
-    query: str = Field(..., max_length=1000)
+    query: str = Field(..., max_length=10000)
     provider: Optional[str] = None
     model: Optional[str] = None
 
@@ -22,11 +22,12 @@ class CopilotQueryView(APIView):
             provider = validated_data.provider or getattr(settings, 'LLM_PROVIDER', 'ollama') or 'ollama'
             model = validated_data.model or getattr(settings, 'LLM_MODEL', 'llama3') or 'llama3'
         except ValidationError as e:
+            print("Validation error in CopilotQueryView:", e)
             return Response({
                 "success": False,
                 "error": {
                     "code": "VALIDATION_ERROR",
-                    "message": "Invalid input: query is required and must be a string."
+                    "message": f"Invalid input: {str(e)}"
                 }
             }, status=400)
 
@@ -36,6 +37,10 @@ class CopilotQueryView(APIView):
                 client = OpenAI(
                     base_url="https://openrouter.ai/api/v1",
                     api_key=settings.OPENROUTER_API_KEY,
+                    default_headers={
+                        "HTTP-Referer": "http://localhost:3000",
+                        "X-Title": "NeuronOps Cluster AI",
+                    }
                 )
             else:
                 # Default to Ollama
@@ -67,6 +72,6 @@ class CopilotQueryView(APIView):
                 "success": False,
                 "error": {
                     "code": "LLM_ERROR",
-                    "message": "LLM_UNAVAILABLE"
+                    "message": str(e)
                 }
             }, status=500)

@@ -9,6 +9,7 @@ class SimulationRunCreateSerializer(serializers.Serializer):
     """Input payload for creating a new simulation run / chat message."""
     prompt = serializers.CharField(max_length=2000, required=False, default="")
     task_type = serializers.ChoiceField(choices=list(TASK_SPECS.keys()))
+    user_count = serializers.IntegerField(min_value=1, max_value=10000, default=1)
     allocated_nodes = serializers.IntegerField(min_value=1, max_value=128)
     file_input_size_gb = serializers.FloatField(min_value=0.1, max_value=100.0, default=1.0)
     image_count = serializers.IntegerField(min_value=0, max_value=10000, default=0)
@@ -26,7 +27,7 @@ class SimulationRunSerializer(serializers.ModelSerializer):
     class Meta:
         model = SimulationRun
         fields = [
-            'id', 'task_type', 'task_label', 'prompt', 'response_text', 'chat_session_id',
+            'id', 'task_type', 'task_label', 'prompt', 'response_text', 'chat_session_id', 'user_count',
             'file_input_size_gb', 'image_count', 'thinking_depth', 'complexity_factor',
             'selected_tier', 'tier_name', 'allocated_nodes', 'allocated_nodes_actual', 'required_nodes',
             'efficiency_pct', 'verdict', 'verdict_display',

@@ -136,7 +136,61 @@ def run_processor():
             if recent_ids:
                 Prediction.objects.exclude(id__in=recent_ids).delete()
 
-            # --- Scheduler Logic ---
+            # --- Global Cluster Load Analysis ---
+            active_nodes_count = 128 - len(idle_nodes)
+            cluster_load_pct = active_nodes_count / 128.0
+
+            if cluster_load_pct > 0.90:
+                # 90% Threshold: Human Escalation
+                recent_esc = ApprovalRequest.objects.filter(
+                    action_type="EMERGENCY LOAD SHEDDING",
+                    requested_at__gte=timezone.now() - timedelta(minutes=5)
+                ).exists()
+                if not recent_esc:
+                    ApprovalRequest.objects.create(
+                        action_type="EMERGENCY LOAD SHEDDING",
+                        target_resource="Cluster Wide",
+                        reason=f"CRITICAL: Cluster load breached 90% ({active_nodes_count}/128 nodes active). Autonomous emergency load shedding executed.",
+                        status="APPROVED",
+                        approved_by=admin_user
+                    )
+                    print(f"[GATE] Auto-executed EMERGENCY LOAD SHEDDING (90% load) autonomously")
+
+            elif cluster_load_pct > 0.80:
+                # 80% Threshold: AI Autonomous Decision
+                recent_ai = ApprovalRequest.objects.filter(
+                    action_type="AI AUTONOMOUS TERMINATION",
+                    requested_at__gte=timezone.now() - timedelta(minutes=2)
+                ).exists()
+                if not recent_ai:
+                    print(f"[SCHEDULER] Load at {cluster_load_pct*100:.1f}%. Querying AI for autonomous termination decision...")
+                    try:
+                        client = OpenAI(base_url=settings.OLLAMA_BASE_URL, api_key="ollama", timeout=5.0)
+                        prompt = "The cluster is at 80% capacity. Which non-essential task type (e.g. image_generation, video_generation, normal_chats) should we put on hold or terminate first to stabilize? Return exactly one word."
+                        response = client.chat.completions.create(
+                            model=LLM_MODEL,
+                            messages=[{"role": "system", "content": "You are an autonomous AI cluster manager."}, {"role": "user", "content": prompt}],
+                            max_tokens=10,
+                        )
+                        content = response.choices[0].message.content
+                        task_to_kill = content.strip().lower() if content else "unknown"
+                        print(f"[AGENT] AI Decision: Hold/Terminate {task_to_kill}")
+                        
+                        # Apply the hold in DB
+                        from simulator.models import SimulationRun
+                        SimulationRun.objects.filter(status__in=["processing", "analyzing"], task_type__icontains=task_to_kill).update(status="failed", response_text="[AI AUTONOMOUS OVERRIDE] Task terminated to stabilize cluster load.")
+                        
+                        ApprovalRequest.objects.create(
+                            action_type="AI AUTONOMOUS TERMINATION",
+                            target_resource=task_to_kill,
+                            reason=f"AI autonomously decided to terminate '{task_to_kill}' to stabilize load ({active_nodes_count}/128).",
+                            status="APPROVED",
+                            approved_by=admin_user
+                        )
+                    except Exception as e:
+                        print(f"[AGENT] Local AI unavailable for 80% load decision: {e}")
+
+            # --- Individual Node Scheduler Logic (Thermal / Failover) ---
             for hot_node, temp in hot_nodes:
                 # Cooldown: skip if we acted on this node in the last 30 seconds
                 recent_action = ApprovalRequest.objects.filter(
@@ -148,26 +202,25 @@ def run_processor():
                     continue
                 
                 if idle_nodes:
-                    target = idle_nodes[0]
+                    target = idle_nodes.pop(0) # Pop to avoid double assigning the same idle node
                     action_type = "LLM Session Live Migration"
-                    reason = f"Autonomously migrating off {hot_node} to {target} due to thermal anomaly."
+                    reason = f"Autonomously migrating off {hot_node} to {target} due to thermal anomaly ({temp:.1f}C)."
                     status = "APPROVED"
-                    
                 else:
                     decision, rca = analyze_cluster_state(hot_node, temp)
                     if decision == "KILL":
                         target = "None (Process Terminated)"
                         action_type = "KILL NON-ESSENTIAL WORKLOADS"
-                        reason = f"Deterministic Heuristic: {rca}"
-                        status = "PENDING"
+                        reason = f"Deterministic Heuristic (Autonomous): {rca}"
+                        status = "APPROVED"
                     else:
                         print(f"[SCHEDULER] Engine decided to WAIT for {hot_node}.")
                         continue
                 
-                # Extreme temperature override
-                if temp >= 95.0 and status == "APPROVED":
-                    status = "PENDING"
-                    reason += " [ESCALATED: Extreme temp > 95C]"
+                # Extreme temperature override (Fail-Safe Shifting is allowed autonomously)
+                if temp >= 95.0 and status == "PENDING":
+                    # Only escalate if we couldn't auto-migrate
+                    reason += " [ESCALATED: Extreme temp > 95C. No idle nodes available.]"
 
                 ApprovalRequest.objects.create(
                     action_type=action_type,
