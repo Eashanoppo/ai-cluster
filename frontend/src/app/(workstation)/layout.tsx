@@ -16,12 +16,9 @@ export default function WorkstationLayout({ children }: { children: React.ReactN
       {/* Top header — Matched in size, borders, and layout with Dashboard header */}
       <header className="h-16 border-b border-nord3/25 bg-ws-surface flex items-center justify-between px-6 flex-shrink-0 z-30 shadow-sm select-none">
         <div className="flex items-center gap-3">
-          {/* Logo mark — Square CPU-style matching Dashboard logo */}
-          <div className="w-8 h-8 bg-ws-interactive flex items-center justify-center text-white font-bold flex-shrink-0 rounded-lg shadow-sm">
-            <FlaskConical size={16} />
-          </div>
+          <img src="/OnlyLogoNoBG.png" alt="ClustroConnect Logo" className="w-8 h-8 object-contain" />
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-nord0 tracking-tight">NeuronOps</span>
+            <span className="text-sm font-bold text-nord0 tracking-tight">ClustroConnect</span>
             {/* Inline badge — Styled exactly like the Dashboard ACTIVE badge */}
             <div className="hidden sm:flex px-2 py-0.5 border border-ws-interactive/30 bg-ws-interactive/10 text-ws-interactive rounded-full font-mono text-[9px] font-bold items-center gap-1 uppercase">
               <span className="w-1.5 h-1.5 bg-ws-interactive rounded-full animate-pulse"></span>

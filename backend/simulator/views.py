@@ -61,7 +61,7 @@ def _generate_task_image(run, public_gen_dir, target_img_name):
     
     # Header area
     draw.rectangle([(20, 20), (width - 20, 70)], fill=nord_card)
-    draw.text((40, 35), "NEURONOPS CLUSTER WORKSTATION // IMAGE GENERATOR", fill=nord_text)
+    draw.text((40, 35), "CLUSTROCONNECT CLUSTER WORKSTATION // IMAGE GENERATOR", fill=nord_text)
     draw.text((width - 180, 35), f"RUN #{run.id}", fill=nord_frost)
     
     # Render different designs based on task_type
@@ -76,7 +76,7 @@ def _generate_task_image(run, public_gen_dir, target_img_name):
         draw.text((210, 240), f"Name: {user_name}", fill=nord_text)
         draw.text((210, 270), f"Task: {run.prompt[:40]}...", fill='#d8dee9')
         draw.text((210, 300), f"Hardware: Blackwell B200", fill=nord_yellow)
-        draw.text((210, 330), "Contact: djrcx@neuronops.local", fill=nord_frost)
+        draw.text((210, 330), "Contact: djrcx@clustroconnect.local", fill=nord_frost)
         
     elif run.task_type == "image_editing":
         # Draw a grid layer on the left

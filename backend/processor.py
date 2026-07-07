@@ -60,7 +60,7 @@ def analyze_cluster_state(hot_node, temp):
     return decision, rca
 
 def run_processor():
-    print("Starting NeuronOps Deterministic Processor...")
+    print("Starting ClustroConnect Deterministic Processor...")
     try:
         admin_user = User.objects.get(username='admin')
     except User.DoesNotExist:  # type: ignore[attr-defined]

@@ -39,7 +39,7 @@ class CopilotQueryView(APIView):
                     api_key=settings.OPENROUTER_API_KEY,
                     default_headers={
                         "HTTP-Referer": "http://localhost:3000",
-                        "X-Title": "NeuronOps Cluster AI",
+                        "X-Title": "ClustroConnect Cluster AI",
                     }
                 )
             else:
@@ -53,7 +53,7 @@ class CopilotQueryView(APIView):
             response = client.chat.completions.create(
                 model=model,
                 messages=[
-                    {"role": "system", "content": "You are NeuronOps Copilot, an AI cluster management assistant. You analyze cluster telemetry, predict GPU failures, and schedule workloads. Give concise, operational responses."},
+                    {"role": "system", "content": "You are ClustroConnect Copilot, an AI cluster management assistant. You analyze cluster telemetry, predict GPU failures, and schedule workloads. Give concise, operational responses."},
                     {"role": "user", "content": query}
                 ],
                 max_tokens=200,

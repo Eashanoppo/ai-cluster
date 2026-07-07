@@ -1,8 +1,8 @@
 ---
-name: NeuronOps Design System
+name: ClustroConnect Design System
 version: beta
 description: >
-  Unified Nord design system for both the NeuronOps Dashboard (Polar Night dark mode)
+  Unified Nord design system for both the ClustroConnect Dashboard (Polar Night dark mode)
   and Workstation (Snow Storm light mode). Commits to rounded corners (12px / 0.75rem)
   throughout both interfaces.
 
@@ -81,7 +81,7 @@ typography:
 # Design Specifications
 
 ## Overview
-This system unifies the visual language of the NeuronOps Dashboard and Workstation under the **Nord theme**. 
+This system unifies the visual language of the ClustroConnect Dashboard and Workstation under the **Nord theme**. 
 - The **Dashboard** uses a dark **Polar Night** ambiance to show system state and metrics in a clinical, clean control-room view.
 - The **Workstation** uses a bright **Snow Storm** ambiance to denote user configuration, chat, and simulation tasks.
 - **Round geometry** (12px / 0.75rem) replaces the previous sharp borders to enhance visual quality, rendering a premium, state-of-the-art interface.

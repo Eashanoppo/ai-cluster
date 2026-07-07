@@ -310,7 +310,7 @@ export default function HistorySidebar({
         {!isCollapsed && (
           <div className="flex flex-col min-w-0">
             <span className="text-xs font-bold text-nord0 truncate leading-none">admin</span>
-            <span className="text-[10px] text-nord2 truncate mt-1">admin@neuronops.io</span>
+            <span className="text-[10px] text-nord2 truncate mt-1">admin@clustroconnect.io</span>
           </div>
         )}
       </div>

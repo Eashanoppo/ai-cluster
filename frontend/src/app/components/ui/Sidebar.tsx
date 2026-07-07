@@ -53,12 +53,10 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
       {/* Sidebar Header */}
       <div className="h-16 border-b border-border flex items-center justify-between px-4">
         <div className={cn("flex items-center gap-2.5 overflow-hidden", isCollapsed && "justify-center w-full")}>
-          <div className="w-8 h-8 bg-primary flex items-center justify-center text-black font-bold flex-shrink-0">
-            <Cpu size={18} />
-          </div>
+          <img src="/OnlyLogoNoBG.png" alt="ClustroConnect Logo" className="w-8 h-8 object-contain" />
           {!isCollapsed && (
             <span className="font-sans font-bold text-sm tracking-tight text-white truncate">
-              NeuronOps
+              ClustroConnect
             </span>
           )}
         </div>
@@ -191,7 +189,7 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           {!isCollapsed && (
             <div className="flex flex-col min-w-0">
               <span className="text-xs font-bold text-white truncate leading-none">admin</span>
-              <span className="text-[10px] text-zinc-500 truncate mt-1">admin@neuronops.io</span>
+              <span className="text-[10px] text-zinc-500 truncate mt-1">admin@clustroconnect.io</span>
             </div>
           )}
         </div>

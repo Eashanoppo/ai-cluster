@@ -1,9 +1,9 @@
-# NeuronOps Cluster Simulation & AGY Workload Flow
+# ClustroConnect Cluster Simulation & AGY Workload Flow
 
 > [!TIP]
 > **Viewing in Antigravity IDE**: Open this document inside the Antigravity IDE and click the **Markdown Preview** button (or press `Ctrl+Shift+V` / `Cmd+Shift+V`) with the **Mermaid Extension** enabled to render the interactive system architecture diagram.
 
-This document details the architecture, active features, data flows, and configuration workflows of the NeuronOps Cluster system. It is designed to help contributors (on both Linux and Windows) set up, run, and modify the application.
+This document details the architecture, active features, data flows, and configuration workflows of the ClustroConnect Cluster system. It is designed to help contributors (on both Linux and Windows) set up, run, and modify the application.
 
 ---
 

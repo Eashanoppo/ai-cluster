@@ -536,7 +536,7 @@ export default function WorkstationChat({
               What's the plan for today?
             </h1>
             <p className="text-xs text-nord2 font-mono max-w-md mx-auto">
-              Initialize a containerized simulator workload run on the NeuronOps cluster. Use the attachment icon to select presets.
+              Initialize a containerized simulator workload run on the ClustroConnect cluster. Use the attachment icon to select presets.
             </p>
           </div>
           {renderInputForm()}
