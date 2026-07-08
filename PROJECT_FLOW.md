@@ -1,4 +1,4 @@
-# ClustroConnect Cluster Simulation & AGY Workload Flow
+# ClustroConnect Cluster Simulation & Workload Flow
 
 > [!TIP]
 > **Viewing in Antigravity IDE**: Open this document inside the Antigravity IDE and click the **Markdown Preview** button (or press `Ctrl+Shift+V` / `Cmd+Shift+V`) with the **Mermaid Extension** enabled to render the interactive system architecture diagram.
@@ -15,7 +15,7 @@ graph TD
     B -- 2. Check occupancy & resource needs --> C{Workload Engine}
     C -- Idle Fallback --> D[Scale Down Quadrant Tier]
     C -- Occupied/Overloaded --> E[Mark PENDING & Create ApprovalRequest]
-    C -- Optimal --> F[Execute AGY / Pillow Fallback]
+    C -- Optimal --> F[Execute CLI / Pillow Fallback]
     
     G[Telemetry Generator] -- 3. Check active runs every 5s --> H[Update GpuTelemetry Models]
     I[Dashboard UI] -- 4. Poll /api/telemetry/latest/ --> J[Render Live Node Map]
@@ -31,7 +31,7 @@ graph TD
 2. **Workload Analysis & Fallback Logic**:
    - **Idle Fallback**: If a task requires high minimum tier resources (e.g. Tier 4 Blackwell) but the user allocates a low node count (`<= 12 nodes`), the engine automatically falls back to a lower-specification quadrant tier (e.g. Tier 3 RTX 5090) to conserve compute cost.
    - **Occupancy & Overload Check**: The backend queries active simulation runs. If the target quadrant tier is already occupied, the incoming task is marked as `pending` (blocked) and a `PENDING` `ApprovalRequest` is created.
-   - **Pillow & Image Output Fallbacks**: When executing, the backend looks for diffusion-generated outputs. If missing or if the AGY tokens are exhausted, it dynamically renders vector Nord-themed images matching the task type using Pillow.
+   - **Pillow & Image Output Fallbacks**: When executing, the backend looks for diffusion-generated outputs. If missing or if the API tokens are exhausted, it dynamically renders vector Nord-themed images matching the task type using Pillow.
 3. **Telemetry & Dashboard Reporting**:
    - A background script (`telemetry_generator.py`) runs on a loop. It checks for active simulation runs and lights up the corresponding quadrant nodes on the Dashboard map (Tier 1: Nodes 1–32, Tier 2: Nodes 33–64, etc.) to show high VRAM, power, and utility.
 4. **Approval Gate & Workload Migration**:
@@ -70,16 +70,16 @@ Windows utilizes different path separators (`\`) and script execution policies.
    pip install -r requirements.txt
    ```
 
-### B. Setting Up the AGY CLI & SDK on Windows
-If the AGY SDK or command-line tools are installed, ensure they are in the Windows user environment PATH:
+### B. Setting Up the Orchestrator CLI & SDK on Windows
+If the Orchestrator SDK or command-line tools are installed, ensure they are in the Windows user environment PATH:
 1. **User PATH Variable**: 
    - Open Start and search for "Edit the system environment variables".
    - Click "Environment Variables".
-   - Under "User variables", edit `Path` and add the path to the directory containing the `agy.exe` executable (e.g. `C:\Users\<username>\AppData\Local\Programs\agy\bin`).
+   - Under "User variables", edit `Path` and add the path to the directory containing the `orchestrator.exe` executable (e.g. `C:\Users\<username>\AppData\Local\Programs\orchestrator\bin`).
 2. **Verifying Installation**:
-   Since the project interacts directly with the **Antigravity CLI** (`agy`) already installed on the system, no manual API tokens or custom environment keys are required. Verify that the CLI is executable from your PowerShell terminal:
+   Since the project interacts directly with the **Orchestrator CLI** (`orchestrator`) already installed on the system, no manual API tokens or custom environment keys are required. Verify that the CLI is executable from your PowerShell terminal:
    ```powershell
-   agy --version
+   orchestrator --version
    ```
 
 

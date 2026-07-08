@@ -166,7 +166,7 @@ export default function WorkstationChat({
         "Scanning directory structure...",
         "Resolving PDF layout matrices...",
         "Parsing metadata fields with local LLM parser...",
-        "Piping results to agy CLI..."
+        "Piping results to orchestrator CLI..."
       ],
       image_generation: [
         "Initializing image diffusion model...",
@@ -226,7 +226,7 @@ export default function WorkstationChat({
       ]
     };
 
-    const taskLogs = logsSequenceMap[execTaskType] || ["Initializing simulation...", "Piping parameters to agy CLI..."];
+    const taskLogs = logsSequenceMap[execTaskType] || ["Initializing simulation...", "Piping parameters to orchestrator CLI..."];
     setSimulationLogs([taskLogs[0]]);
 
     const logInterval = setInterval(() => {

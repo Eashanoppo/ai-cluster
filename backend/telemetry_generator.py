@@ -79,7 +79,7 @@ def generate_telemetry():
             cutoff = timezone.now() - timedelta(seconds=120)
             recent_runs = SimulationRun.objects.filter(
                 created_at__gte=cutoff,
-                status__in=['processing', 'completed']
+                status__in=['analyzing', 'processing', 'completed']
             ).exclude(verdict='overload')
 
             tier_loads = {1: 0, 2: 0, 3: 0, 4: 0}
@@ -169,7 +169,7 @@ def generate_telemetry():
             else:
                 print(f"Tick | Idle state (no active simulation) | All 128 nodes OFF | Pruned {deleted_count} records")
 
-            time.sleep(5)
+            time.sleep(1)
     except KeyboardInterrupt:
         print("Telemetry Generator stopped.")
 

@@ -107,7 +107,7 @@ export function TelemetryLog() {
         console.error("Failed to fetch telemetry log feed", err);
         setError("Connection Lost");
       }
-    }, 5000);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, []);

@@ -242,7 +242,7 @@ def run_processor():
                 else:
                     print(f"[GATE] Escalated {action_type} on {hot_node} to HUMAN (PENDING)")
 
-            time.sleep(5)
+            time.sleep(1)
     except KeyboardInterrupt:
         print("Processor stopped.")
 

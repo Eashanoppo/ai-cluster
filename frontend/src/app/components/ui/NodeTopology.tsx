@@ -46,7 +46,7 @@ export function NodeTopology() {
 
   useEffect(() => {
     fetchTelemetry();
-    const interval = setInterval(fetchTelemetry, 5000);
+    const interval = setInterval(fetchTelemetry, 1000);
     return () => clearInterval(interval);
   }, []);
 

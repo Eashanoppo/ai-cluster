@@ -69,7 +69,7 @@ def _generate_task_image(run, public_gen_dir, target_img_name):
         # Business Card layout
         draw.rectangle([(150, 120), (650, 380)], fill='#3b4252', outline=nord_frost, width=2)
         draw.rectangle([(170, 140), (180, 360)], fill=nord_green)
-        draw.text((210, 150), "ANTIGRAVITY CLI", fill=nord_text)
+        draw.text((210, 150), "ORCHESTRATOR CLI", fill=nord_text)
         draw.text((210, 180), "Artificial Intelligence Systems", fill=nord_frost)
         
         user_name = "DJRCX Cluster Developer"
