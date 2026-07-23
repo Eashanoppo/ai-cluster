@@ -14,7 +14,7 @@
 6. [Authentication Flow](#6-authentication-flow)
 7. [Data Flow — End to End](#7-data-flow--end-to-end)
 8. [Background Services](#8-background-services)
-9. [Frontend Component Map](#9-frontend-component-map)
+9. [Frontend Structure Map](#9-frontend-structure-map)
 10. [Local Setup Guide](#10-local-setup-guide)
 11. [Docker Setup (Alternative)](#11-docker-setup-alternative)
 12. [Verification Checklist](#12-verification-checklist)
@@ -32,6 +32,7 @@
 | **Cost Intelligence** | Detects idle GPU nodes and quantifies the dollar waste in real time |
 | **Human-in-the-Loop Gate** | Escalates dangerous or ambiguous actions (e.g., temperature > 95 °C) to a human operator for approval before execution |
 | **AI Copilot** | Provides a natural-language chat interface powered by a local Ollama LLM or OpenRouter, giving operational advice about the cluster |
+| **Workstation Simulator** | A dedicated light-mode interface where operators can submit arbitrary LLM workloads to the 128-node multi-tier simulated cluster, with hardware-aware task routing (RTX 3090 → Blackwell B200) |
 
 The project is designed as a full-stack demonstration of autonomous infrastructure intelligence — deterministic decision logic at the core, with LLMs used only for human-readable root-cause analysis, not for critical path decisions.
 
@@ -43,7 +44,7 @@ The project is designed as a full-stack demonstration of autonomous infrastructu
 
 | Layer | Technology | Version / Notes |
 |-------|-----------|-----------------|
-| Framework | **Django** | `>=5.0, <6.1` (settings confirm Django 6.0.6 comment) |
+| Framework | **Django** | `>=5.0,<6.1` |
 | REST API | **Django REST Framework** | `>=3.14.0` |
 | Auth | **djangorestframework-simplejwt** | `>=5.3.1` — JWT tokens (1-day access, 7-day refresh) |
 | CORS | **django-cors-headers** | `>=4.3.1` |
@@ -52,6 +53,8 @@ The project is designed as a full-stack demonstration of autonomous infrastructu
 | Env vars | **python-dotenv** | `>=1.0.0` |
 | LLM client | **openai** `>=1.12.0` | Used for both Ollama (local) and OpenRouter (cloud) via OpenAI-compatible API |
 | PostgreSQL driver | **psycopg2-binary** | `>=2.9.9` (for Docker/production) |
+| Agentic AI | **google-antigravity** | `>=0.1.0` — Used in `simulator/agy_service.py` for autonomous agent orchestration |
+| Image processing | **Pillow** | `>=10.0.0` — Used for workload simulation media handling |
 | Database (dev) | **SQLite** | Default; auto-selected when `DATABASE_URL` is unset |
 | Database (prod) | **PostgreSQL 15** | Via Docker Compose |
 | LLM (local, optional) | **Ollama** | `llama3.1:8b` default; used for RCA and Copilot |
@@ -64,6 +67,7 @@ The project is designed as a full-stack demonstration of autonomous infrastructu
 | UI Library | **React** | `19.2.4` |
 | Language | **TypeScript** | `^5` |
 | Styling | **Tailwind CSS v4** | `^4` (PostCSS integration) |
+| Animation | **Framer Motion** | `^12.42.0` — Sidebar collapse, Copilot popup, page transitions |
 | Icons | **lucide-react** | `^1.21.0` |
 | Charts | **Recharts** | `^3.9.0` |
 | Class merging | **clsx** + **tailwind-merge** | `^2.1.1` / `^3.6.0` |
@@ -84,26 +88,41 @@ The project is designed as a full-stack demonstration of autonomous infrastructu
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │                        BROWSER (localhost:3000)                       │
-│  ┌────────────┐  ┌─────────────┐  ┌──────────────┐  ┌────────────┐  │
-│  │ Login Page │  │  Dashboard  │  │ApprovalGate  │  │  Copilot   │  │
-│  │ /login     │  │  / (root)   │  │ (Gate module)│  │  Chat UI   │  │
-│  └────────────┘  └─────────────┘  └──────────────┘  └────────────┘  │
+│                                                                        │
+│  ┌─────────────────────────────────────────────────────────────────┐  │
+│  │  (dashboard) Route Group — Polar Night Dark Mode                 │  │
+│  │  ┌──────────┐ ┌─────────┐ ┌──────────┐ ┌───────┐ ┌─────────┐  │  │
+│  │  │  /       │ │/sentinel│ │/scheduler│ │/costw.│ │ /gate   │  │  │
+│  │  │ Overview │ │Thermal  │ │Workload  │ │Cost   │ │Approval │  │  │
+│  │  │  Page    │ │Predict. │ │Placements│ │Reports│ │  Gate   │  │  │
+│  │  └──────────┘ └─────────┘ └──────────┘ └───────┘ └─────────┘  │  │
+│  │  Shared: Sidebar + HeaderNotifications + Copilot Popup (FAB)    │  │
+│  └─────────────────────────────────────────────────────────────────┘  │
+│                                                                        │
+│  ┌─────────────────────────────────────────────────────────────────┐  │
+│  │  (workstation) Route Group — Snow Storm Light Mode               │  │
+│  │  /workstation — 128-node multi-tier GPU workload simulator       │  │
+│  └─────────────────────────────────────────────────────────────────┘  │
+│                                                                        │
+│  /login — JWT auth form (Client Component)                            │
 └───────────────────────────┬──────────────────────────────────────────┘
-                            │ HTTP (Bearer JWT in cookie)
+                            │ HTTP (Bearer JWT in httpOnly cookie)
                             │ API_URL = http://127.0.0.1:8000/api
                             ▼
 ┌──────────────────────────────────────────────────────────────────────┐
 │                 DJANGO API SERVER (127.0.0.1:8000)                    │
 │                                                                        │
-│  /api/token/          JWT issue endpoint (no auth required)           │
-│  /api/token/refresh/  JWT refresh                                     │
-│  /api/sentinel/       Predictions + Alerts (IsClusterOperator)        │
-│  /api/scheduler/      Workload Placements                             │
-│  /api/costwatch/      Cost Reports                                    │
-│  /api/copilot/        LLM query proxy                                 │
-│  /api/gate/           Approval Requests (human gate)                  │
-│  /api/docs/           Swagger UI                                      │
-│  /admin/              Django Admin                                     │
+│  /api/token/              JWT issue endpoint (no auth required)       │
+│  /api/token/refresh/      JWT refresh                                 │
+│  /api/sentinel/           Predictions + Alerts                        │
+│  /api/scheduler/          Workload Placements                         │
+│  /api/costwatch/          Cost Reports                                │
+│  /api/copilot/            LLM query proxy                             │
+│  /api/gate/               Approval Requests (human gate)             │
+│  /api/telemetry/          Raw GPU telemetry (latest + history)        │
+│  /api/simulator/          Workstation simulation runs + config        │
+│  /api/docs/               Swagger UI                                  │
+│  /admin/                  Django Admin                                 │
 └───────────────────────────┬──────────────────────────────────────────┘
                             │ ORM queries
                             ▼
@@ -112,6 +131,7 @@ The project is designed as a full-stack demonstration of autonomous infrastructu
 │                                                                        │
 │  telemetry_gputelemetry   sentinel_prediction   sentinel_alert        │
 │  scheduler_workloadplace  costwatch_costreport  gate_approvalrequest  │
+│  simulator_simulationrun  (+ simulator config models)                 │
 └───────────────────────────▲──────────────────────────────────────────┘
                             │ Django ORM writes (every 5s)
                  ┌──────────┴───────────┐
@@ -218,6 +238,19 @@ Human-in-the-loop approval queue.
 | `approved_at` | DateTimeField | Nullable |
 | `status` | CharField(20) | `PENDING / APPROVED / REJECTED`; indexed |
 
+### `simulator.SimulationRun`
+Records workload submissions from the Workstation simulator.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | PK | |
+| `task_type` | CharField | e.g. `image_generation`, `inference` |
+| `prompt` | TextField | User-provided task description |
+| `allocated_nodes` | IntegerField | Requested node count |
+| `status` | CharField | `PENDING / RUNNING / COMPLETED / FAILED` |
+| `tier` | IntegerField | Hardware tier assigned (1–4) |
+| `created_at` | DateTimeField | auto_now_add |
+
 ---
 
 ## 5. API Reference
@@ -235,8 +268,15 @@ All endpoints (except `/token/`) require `Authorization: Bearer <jwt>` header.
 | `/scheduler/placements/` | GET | List workload placements |
 | `/costwatch/reports/` | GET | List cost reports |
 | `/copilot/query/` | POST | Send a natural-language query to LLM |
-| `/gate/approvals/` | GET | List PENDING approval requests |
+| `/gate/approvals/` | GET | List approval requests (add `?history=true` for all) |
 | `/gate/approvals/<id>/` | PATCH | Approve or reject a request |
+| `/telemetry/latest/` | GET | Latest GpuTelemetry row per node (5 rows) |
+| `/telemetry/` | GET | GpuTelemetry history (supports `?node_id=&limit=`) |
+| `/simulator/config/` | GET | Simulator hardware tier config |
+| `/simulator/preview/` | POST | Preview workload resource requirements |
+| `/simulator/runs/` | GET / POST | List or create simulation runs |
+| `/simulator/runs/<id>/` | GET | Get a specific simulation run |
+| `/simulator/runs/<id>/acknowledge/` | POST | Acknowledge a completed run |
 | `/schema/` | GET | OpenAPI schema (JSON) |
 | `/docs/` | GET | Swagger UI |
 
@@ -253,7 +293,7 @@ All endpoints (except `/token/`) require `Authorization: Bearer <jwt>` header.
 ## 6. Authentication Flow
 
 ```
-1. User visits /login (Next.js client component)
+1. User visits /login (Next.js Client Component)
 2. Submits username + password via React useActionState + Server Action
 3. Server Action (auth.ts) POSTs to http://127.0.0.1:8000/api/token/
 4. Django returns { data: { access, refresh } }
@@ -261,12 +301,13 @@ All endpoints (except `/token/`) require `Authorization: Bearer <jwt>` header.
    - maxAge: 1 day
    - sameSite: 'lax'
    - secure: only in production
-6. Next.js redirect('/') → Dashboard
+6. Next.js redirect('/') → Dashboard (Overview page)
 7. All subsequent API calls from Next.js Server Components:
    - Read 'jwt' cookie from next/headers
    - Attach as Bearer token in Authorization header
-8. Logout: Server Action deletes 'jwt' cookie → redirect('/login')
-9. Any API 401 response → dashboard catches error → redirect to /login
+8. Client-side components (e.g., Copilot): read jwt from document.cookie via regex
+9. Logout: Server Action deletes 'jwt' cookie → redirect('/login')
+10. Any API 401 response → dashboard catches error → redirect to /login
 ```
 
 > **Security note**: The JWT is stored in an `httpOnly` cookie, not `localStorage` — it is inaccessible to JavaScript and protected against XSS.
@@ -282,6 +323,7 @@ Every 5 seconds:
   → Simulates 5 nodes (Node-01, 02, 08, 14, 19)
   → State machine: normal / spike / idle
   → Writes GpuTelemetry rows to DB
+  → Reacts to approved migrations → forces node cooldown
 
 [processor.py] (reads DB, same 5s cycle)
   → Reads latest GpuTelemetry per node
@@ -297,14 +339,29 @@ Every 5 seconds:
       hot node exists AND NO idle node?
         → calls analyze_cluster_state() (optionally asks Ollama for RCA)
         → creates PENDING ApprovalRequest (waits for human)
+  → Emergency load shedding: cluster load >90% → auto-execute (APPROVED)
+  → Heuristic kills: overheat with no idle fallback → auto-terminate (APPROVED)
 
-[Next.js Dashboard] (page.tsx — Server Component, no-store cache)
+[Workstation Simulator] (user-driven, separate flow)
+  → POST /api/simulator/runs/ with task_type + node count + workload params
+  → workload_engine.py: evaluates tier capacity, auto-scales nodes if deficit
+  → agy_service.py: Google Antigravity SDK agent orchestration (optional)
+  → SimulationRun stored in DB; telemetry_generator reacts to active runs
+
+[Next.js Dashboard] ((dashboard)/page.tsx — Server Component, no-store cache)
   → On every page load, fetches concurrently:
       /api/sentinel/predictions/ → SentinelChart (thermal prediction model)
-      /api/scheduler/placements/ → Scheduler.Actions panel
-      /api/costwatch/reports/    → Autonomous.Fleet (Local LLMs) panel
-      /api/gate/approvals/       → ApprovalGate sidebar
+      /api/scheduler/placements/ → Job Reallocations panel
+      /api/costwatch/reports/    → Total Savings KPI card
+      /api/gate/approvals/       → ApprovalGate sidebar panel
+      /api/telemetry/latest/     → Peak Temperature KPI card
   → Renders live data
+
+[Individual Module Pages] (each a separate Server Component)
+  → /sentinel  → fetches predictions + alerts → dedicated thermal analysis view
+  → /scheduler → fetches placements → migration history table
+  → /costwatch → fetches cost reports → CostReportsTable component
+  → /gate      → fetches approvals → full approve/reject interface + audit log
 
 [ApprovalGate component]
   → Shows PENDING requests
@@ -314,8 +371,8 @@ Every 5 seconds:
       if newly APPROVED → creates WorkloadPlacement (execution logged)
       telemetry_generator reacts to migration → forces node cooldown
 
-[Copilot component]
-  → User types query
+[Copilot component] (floating popup, accessible from any dashboard page)
+  → User types query via "Ask Assistant" FAB button
   → POST /api/copilot/query/
   → Copilot view proxies to Ollama (or OpenRouter)
   → Returns LLM response
@@ -354,45 +411,81 @@ if hot AND no idle:    → Call analyze_cluster_state()
   → Ollama used ONLY for 1-sentence RCA string (optional, with 5s timeout)
   → Create PENDING ApprovalRequest → waits for human
 if temp >= 95:         → Escalate even auto-approvals to PENDING
+if cluster load > 90%: → Emergency load shedding (APPROVED, no human needed)
 ```
 
 ---
 
-## 9. Frontend Component Map
+## 9. Frontend Structure Map
 
 ```
-src/app/
-├── layout.tsx              Root layout (font, metadata)
-├── page.tsx                Dashboard (Server Component — fetches all data)
-├── globals.css             Tailwind CSS v4 design tokens
-├── loading.tsx             Suspense loading UI
-├── error.tsx               Error boundary UI
-├── login/
-│   └── page.tsx            Login form (Client Component)
-├── actions/
-│   ├── auth.ts             loginAction, logoutAction (Server Actions)
-│   ├── copilot.ts          Copilot query Server Action
-│   ├── gate.ts             Approval approve/reject Server Actions
-│   └── sentinel.ts         (Sentinel-related Server Action)
-├── services/
-│   └── api.ts              fetchWithAuth, getPredictions, getPlacements,
-│                           getCostReports, getPendingApprovals
-└── components/ui/
-    ├── Chart.tsx            SentinelChart — Recharts line chart of failure probability
-    ├── SentinelChartInner.tsx  Inner chart component
-    ├── NodeTopology.tsx     Live node topology grid visualization
-    ├── TelemetryLog.tsx     Scrolling telemetry log
-    ├── ApprovalGate.tsx     Human-in-the-loop approval panel
-    └── Copilot.tsx          AI chat interface
+frontend/src/
+├── app/
+│   ├── layout.tsx                 Root layout (font, metadata, global error boundary)
+│   ├── globals.css                Tailwind CSS v4 design tokens + custom CSS
+│   ├── error.tsx                  Global error boundary UI
+│   ├── loading.tsx                Suspense loading UI
+│   │
+│   ├── (dashboard)/               Route group — Polar Night dark mode
+│   │   ├── layout.tsx             Sidebar + Header + Copilot popup shell (Client Component)
+│   │   ├── page.tsx               Overview (Server Component — fetches all KPI data)
+│   │   ├── sentinel/page.tsx      Thermal predictions + alerts page
+│   │   ├── scheduler/page.tsx     Workload placements + migration history page
+│   │   ├── costwatch/page.tsx     Cost reports + fleet waste page
+│   │   └── gate/page.tsx          Approval Gate + audit log page
+│   │
+│   ├── (workstation)/             Route group — Snow Storm light mode
+│   │   ├── layout.tsx             Workstation shell layout
+│   │   └── workstation/page.tsx   128-node multi-tier GPU simulator
+│   │
+│   ├── (oldfrontend)/             Archived old single-page frontend (reference only)
+│   │   └── oldfrontend/
+│   │
+│   ├── login/page.tsx             Login form (Client Component)
+│   │
+│   ├── actions/                   Next.js Server Actions
+│   │   ├── auth.ts                loginAction, logoutAction
+│   │   ├── copilot.ts             Copilot query Server Action
+│   │   ├── gate.ts                Approval approve/reject Server Actions
+│   │   ├── sentinel.ts            Sentinel-related Server Action
+│   │   └── telemetry.ts           pollLatestTelemetry, pollTelemetryHistory Server Actions
+│   │
+│   ├── services/
+│   │   ├── api.ts                 fetchWithAuth + all API functions (predictions, placements,
+│   │   │                          cost reports, approvals, telemetry, simulator endpoints)
+│   │   └── workloadEngine.ts      Client-side workload node allocation logic (mirrors backend)
+│   │
+│   └── components/ui/             Active UI components (current)
+│       ├── Sidebar.tsx            Collapsible navigation sidebar with route links
+│       ├── HeaderNotifications.tsx Notification bell dropdown (pending approvals count)
+│       ├── WorkstationStatusBanner.tsx  Active simulation status ribbon
+│       ├── Chart.tsx              SentinelChart — Recharts line chart of failure probability
+│       ├── SentinelChartInner.tsx Inner Recharts chart component
+│       ├── NodeTopology.tsx       Live node topology grid (uses real telemetry via Server Actions)
+│       ├── TelemetryLog.tsx       Scrolling telemetry event log
+│       ├── ApprovalGate.tsx       Human-in-the-loop approval panel
+│       ├── CostReportsTable.tsx   Formatted cost waste table for /costwatch page
+│       └── Copilot.tsx            AI chat interface (floating popup)
+│
+├── components/
+│   └── ui/
+│       └── button.tsx             Shared Button primitive
+│
+└── lib/                           (utility helpers)
 ```
 
-**Dashboard Layout (4-column XL grid):**
+> **Note:** `components/ui-old/` contains the archived single-page versions of components from before the multi-page overhaul. They are kept for reference but not used in the active routing tree.
 
-| Column | Content |
-|--------|---------|
-| Left (1/4) | NodeTopology + TelemetryLog + Identified Waste ($ total) |
-| Center (2/4) | SentinelChart (thermal prediction) + Scheduler.Actions + Autonomous.Fleet panels |
-| Right (1/4) | ApprovalGate + CopilotChat |
+**Dashboard Navigation (Sidebar links):**
+
+| Page | Route | Primary Data Source |
+|------|-------|---------------------|
+| Overview | `/` | All APIs (concurrent fetch) |
+| Sentinel | `/sentinel` | `/api/sentinel/predictions/` + `/api/sentinel/alerts/` |
+| Scheduler | `/scheduler` | `/api/scheduler/placements/` |
+| CostWatch | `/costwatch` | `/api/costwatch/reports/` |
+| Execution Gate | `/gate` | `/api/gate/approvals/` |
+| Workstation | `/workstation` | `/api/simulator/*` |
 
 ---
 
@@ -526,8 +619,14 @@ npm run dev
 
 | URL | Description |
 |-----|-------------|
-| `http://localhost:3000` | Next.js Dashboard |
+| `http://localhost:3000` | Redirects to `/login` |
 | `http://localhost:3000/login` | Login page |
+| `http://localhost:3000/` | Dashboard Overview |
+| `http://localhost:3000/sentinel` | Thermal Predictions |
+| `http://localhost:3000/scheduler` | Workload Placements |
+| `http://localhost:3000/costwatch` | Cost Reports |
+| `http://localhost:3000/gate` | Execution Gate (Approvals) |
+| `http://localhost:3000/workstation` | Workstation Simulator |
 | `http://127.0.0.1:8000/api/docs/` | Swagger API Documentation |
 | `http://127.0.0.1:8000/admin/` | Django Admin Panel |
 
@@ -567,9 +666,11 @@ After starting all services, verify each component:
 - [ ] **JWT Auth** → `POST http://127.0.0.1:8000/api/token/` with `{"username":"admin","password":"password123"}` returns an access token
 - [ ] **Telemetry** → `telemetry_generator.py` terminal shows "Tick | Nodes: ..." every 5s
 - [ ] **Processor** → `processor.py` terminal shows predictions and scheduling decisions every 5s
-- [ ] **Frontend** → `http://localhost:3000` redirects to `/login`, login succeeds, dashboard loads with live charts
-- [ ] **Copilot** → Copilot chat sends a query; if Ollama is offline, it returns `LLM_UNAVAILABLE` (expected)
-- [ ] **ApprovalGate** → Dashboard shows any PENDING requests; approving triggers a WorkloadPlacement
+- [ ] **Frontend** → `http://localhost:3000` redirects to `/login`, login succeeds, dashboard Overview loads with live KPI cards and charts
+- [ ] **Multi-page nav** → Sidebar links to `/sentinel`, `/scheduler`, `/costwatch`, `/gate` all render live data
+- [ ] **Copilot** → "Ask Assistant" FAB opens popup; sending a query returns an LLM response or `LLM_UNAVAILABLE` (expected if Ollama offline)
+- [ ] **ApprovalGate** → `/gate` page shows PENDING requests; approving triggers a WorkloadPlacement record
+- [ ] **Workstation** → `/workstation` page loads the Workstation Simulator; submitting a task creates a SimulationRun record
 
 ---
 
@@ -579,8 +680,12 @@ After starting all services, verify each component:
 |----------|-----------|
 | **Deterministic scheduling core** | LLMs are not reliable enough for critical infra decisions; the scheduler uses pure heuristics |
 | **Ollama used for RCA only** | LLMs add value for human-readable explanations, not for logic |
+| **Emergency auto-escalation removed from gate** | Processor upgraded to auto-execute (APPROVED) when cluster load >90% or overheat with no idle — reduces human bottleneck |
 | **httpOnly cookie auth** | Prevents XSS token theft vs. localStorage |
-| **Next.js Server Components for data fetching** | SSR with `cache: 'no-store'` ensures the dashboard always shows live data |
+| **Next.js App Router route groups** | `(dashboard)` and `(workstation)` share no layout — each has its own Polar Night / Snow Storm theme shell |
+| **Next.js Server Components for data fetching** | SSR with `cache: 'no-store'` ensures each page always shows live data |
+| **Framer Motion for layout transitions** | Sidebar collapse and Copilot popup use spring animations for a premium feel without heavy CSS overhead |
 | **SQLite as default DB** | Zero-config local dev; Docker Compose upgrades to Postgres for production-like testing |
 | **50-row prediction cap** | Prevents unbounded DB growth in a long-running demo environment |
 | **Single-spike constraint** | Only 1 node spikes at a time in telemetry for clean chart visualizations |
+| **google-antigravity SDK in simulator** | `agy_service.py` uses the Antigravity agent framework for autonomous workload orchestration within the Workstation simulator |

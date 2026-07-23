@@ -1,10 +1,10 @@
 ---
-name: ClustroConnect Design System
-version: beta
+name: NeuronOps Design System
+version: 1.0
 description: >
-  Unified Nord design system for both the ClustroConnect Dashboard (Polar Night dark mode)
-  and Workstation (Snow Storm light mode). Commits to rounded corners (12px / 0.75rem)
-  throughout both interfaces.
+  Unified Nord design system for the NeuronOps platform — Dashboard uses Polar Night dark mode,
+  Workstation uses Snow Storm light mode. Commits to rounded corners (12px / 0.75rem)
+  throughout both interfaces. Primary accent is Nord Frost Blue (#5e81ac).
 
 colors:
   # Snow Storm — Workstation light background & elevated elements
@@ -81,10 +81,11 @@ typography:
 # Design Specifications
 
 ## Overview
-This system unifies the visual language of the ClustroConnect Dashboard and Workstation under the **Nord theme**. 
-- The **Dashboard** uses a dark **Polar Night** ambiance to show system state and metrics in a clinical, clean control-room view.
-- The **Workstation** uses a bright **Snow Storm** ambiance to denote user configuration, chat, and simulation tasks.
-- **Round geometry** (12px / 0.75rem) replaces the previous sharp borders to enhance visual quality, rendering a premium, state-of-the-art interface.
+This system unifies the visual language of the NeuronOps Dashboard and Workstation under the **Nord theme**.
+- The **Dashboard** (`(dashboard)` route group) uses a dark **Polar Night** ambiance — `zinc-950` base, `#3b4252` card surfaces, `#5e81ac` Frost Blue primary accent — for a clinical, control-room feel.
+- The **Workstation** (`(workstation)` route group) uses a bright **Snow Storm** ambiance (`#eceff4` background) for user configuration and simulation tasks.
+- **Round geometry** (12px / 0.75rem) is standard across all cards, panels, and interactive elements.
+- **Motion:** Framer Motion (`^12.42.0`) drives sidebar collapse, Copilot popup, and page transitions.
 
 ---
 
