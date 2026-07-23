@@ -15,6 +15,8 @@ class SimulationRunCreateSerializer(serializers.Serializer):
     image_count = serializers.IntegerField(min_value=0, max_value=10000, default=0)
     thinking_depth = serializers.IntegerField(min_value=1, max_value=5, default=1)
     complexity_factor = serializers.FloatField(min_value=1.0, max_value=5.0, default=1.0)
+    company_name = serializers.CharField(max_length=255, required=False, allow_blank=True, default="Default AI Co")
+    priority = serializers.ChoiceField(choices=["Critical", "High", "Normal", "Background"], default="Normal")
     chat_session_id = serializers.CharField(max_length=64, required=False, allow_blank=True)
 
 
@@ -29,6 +31,7 @@ class SimulationRunSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'task_type', 'task_label', 'prompt', 'response_text', 'chat_session_id', 'user_count',
             'file_input_size_gb', 'image_count', 'thinking_depth', 'complexity_factor',
+            'company_name', 'priority',
             'selected_tier', 'tier_name', 'allocated_nodes', 'allocated_nodes_actual', 'required_nodes',
             'efficiency_pct', 'verdict', 'verdict_display',
             'status', 'bottleneck_analysis', 'recommendations', 'demo_talking_points',
@@ -61,6 +64,7 @@ class SimulationRunListSerializer(serializers.ModelSerializer):
         model = SimulationRun
         fields = [
             'id', 'task_type', 'task_label', 'prompt', 'selected_tier', 'tier_name',
+            'company_name', 'priority',
             'allocated_nodes', 'allocated_nodes_actual', 'required_nodes',
             'efficiency_pct', 'verdict', 'verdict_display', 'status',
             'chat_session_id', 'created_at', 'acknowledged', 'ai_raw_report',

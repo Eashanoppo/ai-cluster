@@ -29,6 +29,7 @@ interface NavItem {
 
 const mainNavItems: NavItem[] = [
   { icon: <LayoutDashboard size={18} />, label: "Dashboard", href: "/" },
+  { icon: <Activity size={18} />, label: "Simulator", href: "/simulator" },
   { icon: <Activity size={18} />, label: "Failure Alerts", href: "/sentinel" },
   { icon: <ArrowRightLeft size={18} />, label: "Job Reallocations", href: "/scheduler" },
   { icon: <DollarSign size={18} />, label: "Savings Manager", href: "/costwatch" },

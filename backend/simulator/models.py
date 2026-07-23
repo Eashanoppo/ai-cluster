@@ -43,6 +43,16 @@ class SimulationRun(models.Model):
     thinking_depth = models.IntegerField(default=1)  # 1–5
     complexity_factor = models.FloatField(default=1.0)  # 1.0–5.0
 
+    # Phase 7: Workload Engine Metadata
+    company_name = models.CharField(max_length=255, blank=True, default="Default AI Co")
+    priority = models.CharField(max_length=50, choices=[
+        ('Critical', 'Critical'),
+        ('High', 'High'),
+        ('Normal', 'Normal'),
+        ('Background', 'Background')
+    ], default='Normal')
+
+
     # Stateful chat fields
     prompt = models.TextField(blank=True)
     response_text = models.TextField(blank=True)

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import HistorySidebar, { ChatSession } from "../../components/workstation/HistorySidebar";
 import WorkstationChat from "../../components/workstation/WorkstationChat";
+import SimulatorPanel from "../../components/workstation/SimulatorPanel";
 import { getSimulationRuns } from "../../services/api";
 
 interface Message {
@@ -225,6 +226,12 @@ export default function WorkstationPage() {
         onSearchChange={setSearchQuery}
         isCollapsed={isSidebarCollapsed}
         onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+      />
+
+      {/* Simulator Control Panel */}
+      <SimulatorPanel 
+        onRefreshHistory={fetchRuns}
+        activeSessionId={activeSessionId}
       />
 
       {/* Main chat workstation workspace */}

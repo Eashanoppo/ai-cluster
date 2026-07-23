@@ -60,6 +60,23 @@ def apply_drift(current, target_min, target_max, step=1.5):
     else:
         return max(current - random.uniform(0, step), target_min)
 
+import json
+from datetime import datetime
+
+def read_disaster_state():
+    state_file = os.path.join(django.conf.settings.BASE_DIR, 'disaster_state.json')
+    if os.path.exists(state_file):
+        try:
+            with open(state_file, 'r') as f:
+                data = json.load(f)
+                # Ensure the scenario is recent (within last 30 seconds)
+                ts = datetime.fromisoformat(data.get('timestamp'))
+                if (timezone.now().replace(tzinfo=None) - ts).total_seconds() < 30:
+                    return data.get('scenario')
+        except Exception:
+            pass
+    return 'manual'
+
 def generate_telemetry():
     print("Starting Partitioned Quadrant Telemetry Generator...")
     
@@ -104,12 +121,18 @@ def generate_telemetry():
                     idx = (idx + 1) % 128
                     
             # Random thermal anomaly / crash simulation under high load
-            # If load > 64 nodes (50% utilization), 5% chance per tick to cause a critical thermal spike > 98C
+            # Or manually injected via Workstation Simulator
             thermal_crash_node = None
-            if len(active_node_indices) > 64 and random.random() < 0.05:
-                # Pick a random active node to crash
+            injected_scenario = read_disaster_state()
+            
+            if injected_scenario == 'gpu_failure' and len(active_node_indices) > 0:
+                # Manual injection
+                thermal_crash_node = NODES[list(active_node_indices)[0]]
+                print(f"🔥 INJECTED THERMAL CRASH SIMULATED ON {thermal_crash_node} 🔥")
+            elif len(active_node_indices) > 64 and random.random() < 0.05:
+                # Auto random crash under high load
                 thermal_crash_node = NODES[random.choice(list(active_node_indices))]
-                print(f"🔥 THERMAL CRASH SIMULATED ON {thermal_crash_node} 🔥")
+                print(f"🔥 AUTO THERMAL CRASH SIMULATED ON {thermal_crash_node} 🔥")
 
             telemetry_objects = []
 

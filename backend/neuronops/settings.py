@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'telemetry',
     'simulator',
+    'cluster_infra',
 ]
 
 MIDDLEWARE = [

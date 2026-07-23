@@ -413,5 +413,26 @@ def acknowledge_run(request: Request, pk: int) -> Response:
     except SimulationRun.DoesNotExist:
         return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
     run.acknowledged = True
-    run.save(update_fields=["acknowledged"])
-    return Response({"acknowledged": True})
+    run.save(update_fields=['acknowledged'])
+    return Response({"status": "acknowledged"})
+
+
+import json
+import os
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def inject_failure(request: Request):
+    """
+    Phase 6: Failure Injection Panel.
+    Writes the requested disaster scenario to a state file that telemetry_generator.py reads.
+    """
+    scenario = request.data.get('scenario', 'manual')
+    state_file = os.path.join(settings.BASE_DIR, 'disaster_state.json')
+    
+    try:
+        with open(state_file, 'w') as f:
+            json.dump({'scenario': scenario, 'timestamp': datetime.now().isoformat()}, f)
+        return Response({"status": "success", "scenario": scenario})
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)

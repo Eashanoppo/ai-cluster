@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nvidia-gpu-operator
+  namespace: gpu-operator
+spec:
+  selector:
+    matchLabels:
+      app: nvidia-gpu-operator
+  template:
+    metadata:
+      labels:
+        app: nvidia-gpu-operator
+    spec:
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: gpu-operator
+        image: nvcr.io/nvidia/k8s/gpu-operator:latest
+        securityContext:
+          privileged: true

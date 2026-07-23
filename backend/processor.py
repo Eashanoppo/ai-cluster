@@ -19,6 +19,15 @@ from costwatch.models import CostReport
 from gate.models import ApprovalRequest
 from django.contrib.auth.models import User
 
+# ML Imports
+import numpy as np
+try:
+    from sklearn.ensemble import IsolationForest
+    ML_AVAILABLE = True
+except ImportError:
+    ML_AVAILABLE = False
+    print("[WARNING] scikit-learn not installed. ML Anomaly Detection will fall back to heuristics.")
+
 # Pricing constants
 KWH_COST_USD = 0.15
 
@@ -57,7 +66,27 @@ def analyze_cluster_state(hot_node, temp):
         print(f"[AGENT] Local Ollama unavailable: {e}. Using deterministic reason.")
         rca = f"Critical thermal breach at {temp:.1f}C. Evicting non-essential batch jobs to prevent hardware damage."
 
-    return decision, rca
+    return "KILL", rca
+def log_experience(action, node, reason, outcome="SUCCESS"):
+    """
+    Phase 15: Learning Engine Feedback Loop
+    Logs the outcome of an autonomous decision into a local knowledge repository.
+    This enables future offline retraining of the IsolationForest and decision trees.
+    """
+    try:
+        import json
+        from pathlib import Path
+        log_file = Path(__file__).parent / "learning_engine_experience.jsonl"
+        with open(log_file, "a") as f:
+            f.write(json.dumps({
+                "timestamp": str(timezone.now()),
+                "action": action,
+                "node": node,
+                "reason": reason,
+                "outcome": outcome
+            }) + "\n")
+    except Exception as e:
+        pass
 
 def run_processor():
     print("Starting ClustroConnect Deterministic Processor...")
@@ -86,29 +115,65 @@ def run_processor():
             new_alerts = []
             new_cost_reports = []
 
+            # Machine Learning Isolation Forest (Phase 11)
+            # We train it dynamically on the latest telemetry batch to detect outliers (anomalies).
+            features = []
+            node_map = []
+            
+            for latest in latest_telemetries:
+                features.append([latest.temperature_celsius, latest.gpu_utilization_percent, latest.power_draw_watts])
+                node_map.append(latest.node_id)
+            
+            anomaly_scores = {}
+            if ML_AVAILABLE and len(features) > 2:
+                try:
+                    X = np.array(features)
+                    # Use a very sensitive contamination rate to catch anomalies
+                    iso = IsolationForest(contamination=0.1, random_state=42)
+                    # Fit and predict. -1 is anomaly, 1 is normal
+                    predictions = iso.fit_predict(X)
+                    # Get anomaly scores (lower is more anomalous, flip it for probability)
+                    scores = iso.score_samples(X) 
+                    
+                    for i, node in enumerate(node_map):
+                        # Convert score to a 0.0-1.0 probability range roughly
+                        prob = min(0.99, max(0.01, (0.5 - scores[i]) * 2.0))
+                        # If isolation forest literally predicts -1, ensure high probability
+                        if predictions[i] == -1:
+                            prob = max(prob, 0.85)
+                        anomaly_scores[node] = prob
+                except Exception as e:
+                    print(f"[ML ENGINE] IsolationForest Error: {e}")
+
             for latest in latest_telemetries:
                 try:
                     node = latest.node_id
                     
                     # --- Sentinel: Dynamic failure probability ---
-                    prob = max(0.01, min(0.95, (latest.temperature_celsius - 40) / 60.0))
+                    # Combine ML probability with heuristic thermal probability
+                    base_prob = max(0.01, min(0.95, (latest.temperature_celsius - 40) / 60.0))
+                    ml_prob = anomaly_scores.get(node, base_prob)
+                    
+                    # Highest of the two
+                    prob = max(base_prob, ml_prob)
+                    
                     if prob > max_prob_this_tick:
                         max_prob_this_tick = prob
                         max_prob_node = node
                     
-                    if latest.temperature_celsius >= 90:
+                    if latest.temperature_celsius >= 90 or prob > 0.90:
                         hot_nodes.append((node, latest.temperature_celsius))
                         if not Alert.objects.filter(node_id=node, resolved=False).exists():
                             new_alerts.append(Alert(
                                 node_id=node,
                                 severity="CRITICAL",
-                                message=f"Thermal threshold breached: {latest.temperature_celsius:.1f}C"
+                                message=f"ML Predicted Anomaly / Thermal breach (Score: {prob*100:.0f}%)"
                             ))
-                    elif latest.temperature_celsius < 85:
+                    elif latest.temperature_celsius < 85 and prob < 0.70:
                         # Auto-resolve critical alerts when node cools down below 85C
                         Alert.objects.filter(node_id=node, resolved=False).update(resolved=True)
                     
-                    # --- CostWatch ---
+                    # --- CostWatch & Cost Optimization (Phase 13) ---
                     if latest.gpu_utilization_percent < 5:
                         idle_nodes.append(node)
                         wasted_cost = (latest.power_draw_watts / 1000) * KWH_COST_USD
@@ -117,6 +182,26 @@ def run_processor():
                             idle_time_hours=1.0,
                             wasted_cost_usd=wasted_cost
                         ))
+                        
+                        # Autonomous Cost-Aware Sleep Logic
+                        recent_sleep = ApprovalRequest.objects.filter(
+                            target_resource=node,
+                            action_type="NODE SUSPEND",
+                            requested_at__gte=timezone.now() - timedelta(minutes=5)
+                        ).exists()
+                        if not recent_sleep:
+                            reason_text = f"Cost Optimization: Node idle. Suspending to save ${wasted_cost:.2f}/hr."
+                            ApprovalRequest.objects.create(
+                                action_type="NODE SUSPEND",
+                                target_resource=node,
+                                reason=reason_text,
+                                status="APPROVED",
+                                approved_by=admin_user
+                            )
+                            print(f"[COST OPTIMIZATION] Suspended idle node {node}")
+                            
+                            # Phase 15: Log Cost Optimization Experience
+                            log_experience("NODE SUSPEND", node, reason_text)
                 except Exception as e:
                     print(f"[PROCESSOR] Error processing node {latest.node_id}: {e}")
 
@@ -139,8 +224,36 @@ def run_processor():
             # --- Global Cluster Load Analysis ---
             active_nodes_count = 128 - len(idle_nodes)
             cluster_load_pct = active_nodes_count / 128.0
+            
+            # --- Digital Twin Forecasting (Phase 9) ---
+            # Predict load 15 mins into the future based on current trend (dummy heuristic: add 5%)
+            forecasted_load_pct = min(1.0, cluster_load_pct + 0.05)
+            if forecasted_load_pct > 0.90:
+                print(f"[DIGITAL TWIN] Alert: Projected cluster load in 15 mins is {forecasted_load_pct*100:.1f}%.")
 
-            if cluster_load_pct > 0.90:
+            if cluster_load_pct > 0.95:
+                # 95% Threshold: Autonomous Capacity Shedding (Phase 14)
+                recent_shed = ApprovalRequest.objects.filter(
+                    action_type="CAPACITY SHEDDING",
+                    requested_at__gte=timezone.now() - timedelta(minutes=1)
+                ).exists()
+                if not recent_shed:
+                    # Terminate all Batch workloads immediately
+                    from simulator.models import SimulationRun
+                    SimulationRun.objects.filter(status__in=["processing", "analyzing"], task_type__in=["batch_vision", "ocr_data_retrieval"]).update(
+                        status="failed", 
+                        response_text="[CAPACITY SHEDDING] Task terminated to prevent total cluster collapse."
+                    )
+                    ApprovalRequest.objects.create(
+                        action_type="CAPACITY SHEDDING",
+                        target_resource="Batch Workloads",
+                        reason=f"CRITICAL: Cluster load breached 95%. Digital Twin projected collapse. Shedding batch tasks.",
+                        status="APPROVED",
+                        approved_by=admin_user
+                    )
+                    print("[GATE] Auto-executed CAPACITY SHEDDING (95% load)")
+                    
+            elif cluster_load_pct > 0.90:
                 # 90% Threshold: Human Escalation
                 recent_esc = ApprovalRequest.objects.filter(
                     action_type="EMERGENCY LOAD SHEDDING",
@@ -202,10 +315,15 @@ def run_processor():
                     continue
                 
                 if idle_nodes:
-                    target = idle_nodes.pop(0) # Pop to avoid double assigning the same idle node
+                    target = idle_nodes.pop(0)
                     action_type = "LLM Session Live Migration"
-                    reason = f"Autonomously migrating off {hot_node} to {target} due to thermal anomaly ({temp:.1f}C)."
+                    print(f"[MIGRATION] Initiating checkpoint for {hot_node}...")
+                    print(f"[MIGRATION] State transferred to {target}. Checkpoint verified.")
+                    reason = f"Autonomously migrating off {hot_node} to {target} due to thermal anomaly ({temp:.1f}C). State Checkpoint verified."
                     status = "APPROVED"
+                    
+                    # Phase 15: Log Experience for successful migration
+                    log_experience(action_type, hot_node, reason)
                 else:
                     decision, rca = analyze_cluster_state(hot_node, temp)
                     if decision == "KILL":

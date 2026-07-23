@@ -1,0 +1,34 @@
+apiVersion: ray.io/v1
+kind: RayCluster
+metadata:
+  name: neuronops-ray-cluster
+spec:
+  rayVersion: '2.9.0'
+  headGroupSpec:
+    rayStartParams:
+      dashboard-host: '0.0.0.0'
+    template:
+      spec:
+        containers:
+        - name: ray-head
+          image: rayproject/ray:latest-gpu
+          resources:
+            limits:
+              cpu: "4"
+              memory: "16Gi"
+  workerGroupSpecs:
+  - groupName: gpu-worker-group
+    replicas: 128
+    minReplicas: 10
+    maxReplicas: 200
+    rayStartParams: {}
+    template:
+      spec:
+        containers:
+        - name: ray-worker
+          image: rayproject/ray:latest-gpu
+          resources:
+            limits:
+              nvidia.com/gpu: 1
+              cpu: "8"
+              memory: "32Gi"

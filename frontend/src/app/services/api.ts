@@ -97,6 +97,8 @@ export interface SimulationRunPayload {
   image_count: number;
   thinking_depth: number;
   complexity_factor: number;
+  company_name?: string;
+  priority?: string;
 }
 
 export async function getSimulatorConfig(): Promise<any> {
@@ -128,5 +130,12 @@ export async function getSimulationRun(id: number): Promise<any> {
 export async function acknowledgeSimulationRun(id: number): Promise<any> {
   return fetchWithAuth(`/simulator/runs/${id}/acknowledge/`, {
     method: 'POST',
+  })
+}
+
+export async function injectFailure(scenario: string): Promise<any> {
+  return fetchWithAuth('/simulator/inject_failure/', {
+    method: 'POST',
+    body: JSON.stringify({ scenario }),
   })
 }
