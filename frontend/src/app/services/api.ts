@@ -139,3 +139,19 @@ export async function injectFailure(scenario: string): Promise<any> {
     body: JSON.stringify({ scenario }),
   })
 }
+
+// ---------------------------------------------------------------------------
+// Digital Twin Topology & Dashboard Metrics (Option B & C)
+// ---------------------------------------------------------------------------
+
+export async function getTopology(): Promise<any> {
+  return fetchWithAuth('/telemetry/topology/')
+}
+
+export async function getDashboardMetrics(): Promise<any> {
+  return fetchWithAuth('/telemetry/dashboard_metrics/')
+}
+
+export async function getLearningUpdates(): Promise<any[]> {
+  return fetchWithAuth('/telemetry/learning_updates/')
+}

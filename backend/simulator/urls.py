@@ -1,9 +1,14 @@
 """Simulator app URL configuration."""
 
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from . import views
 
+router = DefaultRouter()
+router.register(r'companies', views.CompanyProfileViewSet, basename='companyprofile')
+
 urlpatterns = [
+    path('', include(router.urls)),
     path("config/", views.simulator_config, name="simulator-config"),
     path("preview/", views.workload_preview, name="simulator-preview"),
     path("runs/", views.simulation_runs, name="simulator-runs"),

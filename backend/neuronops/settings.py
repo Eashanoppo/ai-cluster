@@ -99,6 +99,8 @@ DATABASES = {
         conn_max_age=600
     )
 }
+if DATABASES['default']['ENGINE'] == 'django.db.backends.sqlite3':
+    DATABASES['default']['OPTIONS'] = {'timeout': 20}
 
 
 # Password validation

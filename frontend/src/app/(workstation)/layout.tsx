@@ -41,6 +41,18 @@ export default function WorkstationLayout({ children }: { children: React.ReactN
               Workstation
             </Link>
             <Link
+              href="/dashboard"
+              id="ws-nav-dashboard"
+              className={cn(
+                "px-3 py-1.5 rounded-xl text-xs font-semibold font-sans transition-all outline-none glow-focus",
+                pathname === "/dashboard"
+                  ? "bg-ws-interactive/15 text-ws-interactive font-bold"
+                  : "text-nord2 hover:text-nord0 hover:bg-ws-surface-raised"
+              )}
+            >
+              Grafana Analytics
+            </Link>
+            <Link
               href="/workstation/results"
               id="ws-nav-results"
               className={cn(

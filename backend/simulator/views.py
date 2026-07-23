@@ -19,12 +19,21 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from .models import SimulationRun
+from .models import SimulationRun, CompanyProfile
 from .serializers import (
     SimulationRunCreateSerializer,
     SimulationRunSerializer,
     SimulationRunListSerializer,
+    CompanyProfileSerializer,
 )
+
+from rest_framework import viewsets
+
+class CompanyProfileViewSet(viewsets.ModelViewSet):
+    queryset = CompanyProfile.objects.all().order_by('-created_at')
+    serializer_class = CompanyProfileSerializer
+    permission_classes = [IsAuthenticated]
+
 from .workload_engine import (
     assess_allocation,
     TASK_SPECS,

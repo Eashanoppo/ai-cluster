@@ -4,7 +4,7 @@ import { SentinelChart } from '../components/ui/Chart';
 import { NodeTopology } from '../components/ui/NodeTopology';
 import { TelemetryLog } from '../components/ui/TelemetryLog';
 import { ApprovalGate } from '../components/ui/ApprovalGate';
-import { getPredictions, getPlacements, getCostReports, getPendingApprovals, getLatestTelemetry } from '../services/api';
+import { getPredictions, getPlacements, getCostReports, getPendingApprovals, getLatestTelemetry, getLearningUpdates } from '../services/api';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
@@ -43,12 +43,13 @@ export default async function DashboardOverview() {
   }
 
   // Fetch all backend API data concurrently
-  const [predictions, placements, costs, approvals, telemetry] = await Promise.all([
+  const [predictions, placements, costs, approvals, telemetry, updates] = await Promise.all([
     getPredictions().catch(() => []),
     getPlacements().catch(() => []),
     getCostReports().catch(() => []),
     getPendingApprovals().catch(() => []),
-    getLatestTelemetry().catch(() => [])
+    getLatestTelemetry().catch(() => []),
+    getLearningUpdates().catch(() => [])
   ]);
 
   const safePredictions = Array.isArray(predictions) ? predictions : ((predictions as any).results || []);
@@ -56,11 +57,21 @@ export default async function DashboardOverview() {
   const safeCosts = Array.isArray(costs) ? costs : ((costs as any).results || []);
   const safeApprovals = Array.isArray(approvals) ? approvals : ((approvals as any).results || []);
   const safeTelemetry = Array.isArray(telemetry) ? telemetry : [];
+  const safeUpdates = Array.isArray(updates) ? updates : [];
 
   const totalSaved = safeCosts.reduce((acc: number, curr: CostReport) => acc + parseFloat(curr.wasted_cost_usd), 0);
   const maxTemp = safeTelemetry.length > 0 
     ? Math.max(...safeTelemetry.map(n => n.temperature_celsius)) 
     : 0;
+
+  const projectedTemp = maxTemp > 0 ? maxTemp * 1.05 : 0;
+  const backlogMins = safeApprovals.length * 2 + safePlacements.length;
+  let riskLevel = 'LOW';
+  if (maxTemp >= 85 || safePredictions.length > 5) {
+    riskLevel = 'CRITICAL';
+  } else if (maxTemp >= 75 || safePredictions.length > 0) {
+    riskLevel = 'MODERATE';
+  }
 
   return (
     <div className="space-y-6 font-sans">
@@ -169,20 +180,20 @@ export default async function DashboardOverview() {
               <div>
                 <div className="flex justify-between text-xs font-mono mb-1">
                   <span className="text-zinc-400">Projected Thermal Load</span>
-                  <span className="text-white">72.4°C</span>
+                  <span className="text-white">{projectedTemp.toFixed(1)}°C</span>
                 </div>
                 <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
-                  <div className="h-full bg-orange-400 rounded-full" style={{width: '72%'}}></div>
+                  <div className={`h-full rounded-full ${projectedTemp > 85 ? 'bg-red-500' : projectedTemp > 75 ? 'bg-orange-400' : 'bg-primary'}`} style={{width: `${Math.min(100, projectedTemp)}%`}}></div>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-zinc-900/50 p-3 rounded-lg border border-border">
                   <div className="text-xs font-mono text-zinc-500">Backlog Clear Time</div>
-                  <div className="text-lg font-bold text-white mt-1">12 Mins</div>
+                  <div className="text-lg font-bold text-white mt-1">{backlogMins} Mins</div>
                 </div>
                 <div className="bg-zinc-900/50 p-3 rounded-lg border border-border">
                   <div className="text-xs font-mono text-zinc-500">Risk Level</div>
-                  <div className="text-lg font-bold text-yellow-400 mt-1">MODERATE</div>
+                  <div className={`text-lg font-bold mt-1 ${riskLevel === 'CRITICAL' ? 'text-red-500' : riskLevel === 'MODERATE' ? 'text-yellow-400' : 'text-emerald-400'}`}>{riskLevel}</div>
                 </div>
               </div>
             </div>
@@ -235,31 +246,41 @@ export default async function DashboardOverview() {
                   <ShieldCheck className="w-4 h-4 text-primary" />
                   AI Decision Center
                 </h2>
-                <p className="text-mono-label text-zinc-500 mt-0.5">Autonomous Control Plane Actions</p>
+                <p className="text-mono-label text-zinc-500 mt-0.5">Explainable Learning Updates (Doc 25)</p>
               </div>
             </div>
             <div className="flex-1 overflow-y-auto space-y-3">
-              <div className="p-3 bg-red-500/5 border border-red-500/20 rounded-lg">
-                <div className="flex justify-between items-start mb-1">
-                  <span className="text-sm font-bold text-white">Live Migration Triggered</span>
-                  <span className="text-xs text-zinc-500 font-mono">Just now</span>
-                </div>
-                <p className="text-xs text-zinc-400 mb-2">Isolation Forest predicted Node-84 failure with 94% confidence.</p>
-                <div className="flex gap-2">
-                  <span className="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider bg-zinc-900 text-zinc-300 rounded border border-border">Confidence: 94%</span>
-                  <span className="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider bg-zinc-900 text-zinc-300 rounded border border-border">Metric: GPU Temp</span>
-                </div>
-              </div>
-              <div className="p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-lg">
-                <div className="flex justify-between items-start mb-1">
-                  <span className="text-sm font-bold text-white">Cost Optimization Sleep</span>
-                  <span className="text-xs text-zinc-500 font-mono">15m ago</span>
-                </div>
-                <p className="text-xs text-zinc-400 mb-2">Suspended 12 idle nodes to minimize operational expenditure.</p>
-                <div className="flex gap-2">
-                  <span className="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider bg-zinc-900 text-zinc-300 rounded border border-border">Benefit: $14/hr</span>
-                </div>
-              </div>
+              {safeUpdates.slice(0, 10).map((update: any, idx: number) => {
+                let colorClass = "bg-primary/5 border-primary/20 text-primary";
+                let badgeColor = "bg-primary/10 text-primary";
+                
+                if (update.action === "LIVE MIGRATION" || update.action === "CAPACITY SHEDDING" || update.action === "AI AUTONOMOUS TERMINATION") {
+                  colorClass = "bg-red-500/5 border-red-500/20";
+                  badgeColor = "text-red-400";
+                } else if (update.action === "NODE SUSPEND") {
+                  colorClass = "bg-emerald-500/5 border-emerald-500/20";
+                  badgeColor = "text-emerald-400";
+                }
+                
+                return (
+                  <div key={update.id || idx} className={`p-3 border rounded-lg ${colorClass}`}>
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="text-sm font-bold text-white">{update.action}</span>
+                      <span className="text-xs text-zinc-500 font-mono">{new Date(update.timestamp).toLocaleTimeString()}</span>
+                    </div>
+                    <p className="text-xs text-zinc-400 mb-2">{update.reason}</p>
+                    <div className="flex gap-2">
+                      {update.id && <span className={`px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded border border-border ${badgeColor}`}>{update.id}</span>}
+                      <span className="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider bg-zinc-900 text-zinc-300 rounded border border-border">Target: {update.target}</span>
+                      <span className="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider bg-zinc-900 text-zinc-300 rounded border border-border">Confidence: {update.confidence * 100}%</span>
+                    </div>
+                  </div>
+                )
+              })}
+              
+              {safeUpdates.length === 0 && (
+                <p className="text-center font-mono text-xs text-zinc-500 py-12">No recent learning experiences logged.</p>
+              )}
             </div>
           </div>
 

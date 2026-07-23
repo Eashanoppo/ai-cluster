@@ -62,9 +62,10 @@ def apply_drift(current, target_min, target_max, step=1.5):
 
 import json
 from datetime import datetime
+from django.conf import settings
 
 def read_disaster_state():
-    state_file = os.path.join(django.conf.settings.BASE_DIR, 'disaster_state.json')
+    state_file = os.path.join(settings.BASE_DIR, 'disaster_state.json')
     if os.path.exists(state_file):
         try:
             with open(state_file, 'r') as f:
@@ -125,10 +126,10 @@ def generate_telemetry():
             thermal_crash_node = None
             injected_scenario = read_disaster_state()
             
-            if injected_scenario == 'gpu_failure' and len(active_node_indices) > 0:
-                # Manual injection
+            if injected_scenario in ['gpu_failure', 'memory_leak', 'kill_gpu', 'shutdown_node'] and len(active_node_indices) > 0:
+                # Manual injection target
                 thermal_crash_node = NODES[list(active_node_indices)[0]]
-                print(f"🔥 INJECTED THERMAL CRASH SIMULATED ON {thermal_crash_node} 🔥")
+                print(f"🔥 INJECTED {injected_scenario.upper()} SIMULATED ON {thermal_crash_node} 🔥")
             elif len(active_node_indices) > 64 and random.random() < 0.05:
                 # Auto random crash under high load
                 thermal_crash_node = NODES[random.choice(list(active_node_indices))]
@@ -162,9 +163,22 @@ def generate_telemetry():
                     hist["power"] = apply_drift(hist["power"], 8.0, 12.0)
                 
                 # Apply simulated crash if selected
-                if node == thermal_crash_node:
+                if injected_scenario == 'gpu_failure' and node == thermal_crash_node:
                     hist["temp"] = 99.5
                     hist["util"] = 100.0
+                elif injected_scenario == 'memory_leak' and node == thermal_crash_node:
+                    hist["vram"] = vram_total * 0.99
+                    hist["temp"] = apply_drift(hist["temp"], 80.0, 85.0)
+                elif injected_scenario == 'kill_gpu' and node == thermal_crash_node:
+                    hist["util"] = 0.0
+                    hist["power"] = 0.0
+                    hist["vram"] = 0.0
+                elif injected_scenario == 'shutdown_node' and node == thermal_crash_node:
+                    # Simulates node disconnected (or 0 everything)
+                    hist["temp"] = 25.0
+                    hist["util"] = 0.0
+                    hist["power"] = 0.0
+                    hist["vram"] = 0.0
 
                 telemetry_objects.append(
                     GpuTelemetry(

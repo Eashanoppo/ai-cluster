@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import HistorySidebar, { ChatSession } from "../../components/workstation/HistorySidebar";
 import WorkstationChat from "../../components/workstation/WorkstationChat";
 import SimulatorPanel from "../../components/workstation/SimulatorPanel";
+import CompanyWizard, { CompanyProfile } from "../../components/workstation/CompanyWizard";
 import { getSimulationRuns } from "../../services/api";
 
 interface Message {
@@ -20,6 +21,7 @@ export default function WorkstationPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [activeCompany, setActiveCompany] = useState<CompanyProfile | null>(null);
 
   // Generate a random unique session ID for a new chat
   const generateNewSessionId = () => {
@@ -37,6 +39,18 @@ export default function WorkstationPage() {
     try {
       const data = await getSimulationRuns();
       setRuns(data || []);
+      
+      // Also try to fetch the most recent company profile
+      try {
+        const { fetchWithAuth } = await import('../../services/api');
+        const companies = await fetchWithAuth('/simulator/companies/');
+        if (companies && companies.length > 0 && !activeCompany) {
+          setActiveCompany(companies[0]);
+        }
+      } catch (ce) {
+        console.error("Failed to fetch companies", ce);
+      }
+      
     } catch (err: any) {
       if (err?.message === "Unauthorized") {
         window.location.href = '/login';
@@ -46,7 +60,7 @@ export default function WorkstationPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [activeCompany]);
 
   useEffect(() => {
     fetchRuns();
@@ -215,34 +229,41 @@ export default function WorkstationPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] w-full overflow-hidden">
-      {/* Sidebar: Grouped chronology history list */}
-      <HistorySidebar
-        sessions={sessions}
-        activeSessionId={activeSessionId}
-        onSelectSession={setActiveSessionId}
-        onNewChat={handleNewChat}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        isCollapsed={isSidebarCollapsed}
-        onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-      />
-
-      {/* Simulator Control Panel */}
-      <SimulatorPanel 
-        onRefreshHistory={fetchRuns}
-        activeSessionId={activeSessionId}
-      />
-
-      {/* Main chat workstation workspace */}
-      {activeSessionId && (
-        <WorkstationChat
-          activeSessionId={activeSessionId}
-          messages={activeSessionMessages}
-          onAddMessage={handleAddMessage}
-          onRefreshHistory={fetchRuns}
-        />
+    <>
+      {!activeCompany && (
+        <CompanyWizard onComplete={(profile) => setActiveCompany(profile)} />
       )}
-    </div>
+      <div className="flex h-[calc(100vh-3.5rem)] w-full overflow-hidden">
+        {/* Sidebar: Grouped chronology history list */}
+        <HistorySidebar
+          sessions={sessions}
+          activeSessionId={activeSessionId}
+          onSelectSession={setActiveSessionId}
+          onNewChat={handleNewChat}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          isCollapsed={isSidebarCollapsed}
+          onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        />
+
+        {/* Simulator Control Panel */}
+        <SimulatorPanel 
+          onRefreshHistory={fetchRuns}
+          activeSessionId={activeSessionId}
+          activeCompany={activeCompany}
+        />
+
+        {/* Main chat workstation workspace */}
+        {activeSessionId && (
+          <WorkstationChat
+            activeSessionId={activeSessionId}
+            messages={activeSessionMessages}
+            onAddMessage={handleAddMessage}
+            onRefreshHistory={fetchRuns}
+            activeCompany={activeCompany}
+          />
+        )}
+      </div>
+    </>
   );
 }

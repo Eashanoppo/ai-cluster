@@ -5,6 +5,7 @@ import { Paperclip, Sliders, AlertTriangle, Cpu, Check, Play, RefreshCw } from "
 import { assessAllocation, TASK_SPECS, TIERS, WorkloadParams } from "../../services/workloadEngine";
 import { createSimulationRun, getPlacements } from "../../services/api";
 import { cn } from "../../../lib/utils";
+import { CompanyProfile } from "./CompanyWizard";
 
 interface Message {
   id: string;
@@ -19,6 +20,7 @@ interface WorkstationChatProps {
   messages: Message[];
   onAddMessage: (msg: Message) => void;
   onRefreshHistory: () => void;
+  activeCompany?: CompanyProfile | null;
 }
 
 export default function WorkstationChat({
@@ -26,6 +28,7 @@ export default function WorkstationChat({
   messages,
   onAddMessage,
   onRefreshHistory,
+  activeCompany,
 }: WorkstationChatProps) {
   const [inputText, setInputText] = useState("");
   const [taskType, setTaskType] = useState("ocr_data_retrieval");

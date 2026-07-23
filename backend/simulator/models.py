@@ -7,6 +7,32 @@ SimulationRun — one complete simulation session (task config + tier choice + A
 from django.db import models
 
 
+class CompanyProfile(models.Model):
+    """Company Wizard settings (Doc 6.9)."""
+    name = models.CharField(max_length=255, unique=True)
+    industry = models.CharField(max_length=100)
+    region = models.CharField(max_length=100, blank=True)
+    
+    # Business Goals
+    goal_cost = models.BooleanField(default=False)
+    goal_latency = models.BooleanField(default=False)
+    goal_balanced = models.BooleanField(default=True)
+    goal_throughput = models.BooleanField(default=False)
+    
+    # Infrastructure
+    initial_gpu_count = models.IntegerField(default=128)
+    cpu_nodes = models.IntegerField(default=64)
+    budget = models.IntegerField(default=500000)
+    
+    # Selected Services
+    services = models.JSONField(default=list)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+
 class SimulationRun(models.Model):
     """Records a single cluster simulation run submitted from the Workstation."""
 
