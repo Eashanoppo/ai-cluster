@@ -1,5 +1,6 @@
 import React from "react";
 import Image from "next/image";
+import KineticGrid from "@/components/ui/kinetic-grid";
 import { Navbar } from "@/components/Navbar";
 import { Hero } from "@/components/Hero";
 import { Problems, Solutions } from "@/components/ProblemSolution";
@@ -9,12 +10,12 @@ import { EventTeam } from "@/components/EventTeam";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-[#eceff4] text-[#2e3440] bg-grid-pattern-light relative selection:bg-[#5e81ac] selection:text-white">
+    <KineticGrid className="min-h-screen text-[#2e3440] selection:bg-[#5e81ac] selection:text-white">
       {/* Navigation Bar */}
       <Navbar />
 
       {/* Main Showcase Page Sections */}
-      <main className="space-y-12">
+      <main className="space-y-12 relative z-10">
         <Hero />
         <Problems />
         <Solutions />
@@ -24,7 +25,7 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[#d8dee9] bg-[#e5e9f0]/90 py-12 mt-20">
+      <footer className="border-t border-[#d8dee9] bg-[#e5e9f0]/90 py-12 mt-20 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-medium text-[#4c566a]">
           <div className="flex items-center space-x-3">
             <div className="relative w-6 h-6">
@@ -37,6 +38,6 @@ export default function Home() {
           <p>© 2026 Team UNLEFT. Built for Daffodil International University Hackathon.</p>
         </div>
       </footer>
-    </div>
+    </KineticGrid>
   );
 }

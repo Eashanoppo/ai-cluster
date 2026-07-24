@@ -2,7 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { Server, Database, Network, Cpu, ShieldCheck } from "lucide-react";
+import { Server, Database, Network, ShieldCheck } from "lucide-react";
 import { AnimatedSection } from "./AnimatedSection";
 
 const architectureModules = [
@@ -35,19 +35,12 @@ const architectureModules = [
   },
 ];
 
-const hardwareTiers = [
-  { name: "Tier 1", build: "RTX 3090 Build", spec: "24GB GDDR6X", color: "#a3be8c" },
-  { name: "Tier 2", build: "RTX 4090 Build", spec: "24GB GDDR6X", color: "#ebcb8b" },
-  { name: "Tier 3", build: "RTX 5090 Build", spec: "32GB GDDR7", color: "#d08770" },
-  { name: "Tier 4", build: "Blackwell B200", spec: "192GB HBM3", color: "#bf616a" },
-];
-
 export const Architecture: React.FC = () => {
   return (
     <AnimatedSection id="architecture" className="py-24 border-t border-[#d8dee9]">
-      <div className="text-center max-w-3xl mx-auto mb-16">
+      <div className="text-center max-w-3xl mx-auto mb-16 w-full">
         <h2 className="text-4xl sm:text-5xl font-black text-[#2e3440] tracking-tight">
-          Key Architecture & Compute Tiering
+          Key Architecture & Compute Modules
         </h2>
         <p className="mt-4 text-lg text-[#434c5e] leading-relaxed">
           Engineered for modularity, low-overhead inter-node sync, and hardware-aware profile scaling.
@@ -55,7 +48,7 @@ export const Architecture: React.FC = () => {
       </div>
 
       {/* Architecture Modules Grid */}
-      <div className="grid md:grid-cols-3 gap-8">
+      <div className="grid md:grid-cols-3 gap-8 w-full">
         {architectureModules.map((module, idx) => (
           <motion.div
             key={idx}
@@ -102,41 +95,6 @@ export const Architecture: React.FC = () => {
             </div>
           </motion.div>
         ))}
-      </div>
-
-      {/* Hardware Tier Profiles */}
-      <div className="mt-16 bg-[#d8dee9] border border-[#e5e9f0] rounded-2xl p-8 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
-          <div>
-            <h3 className="text-2xl font-bold text-[#2e3440] flex items-center space-x-3">
-              <Cpu className="w-6 h-6 text-[#5e81ac]" />
-              <span>Hardware Tier Profiles</span>
-            </h3>
-            <p className="text-sm text-[#434c5e] mt-1">
-              System profiles mapping telemetry metrics directly to GPU hardware configurations.
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {hardwareTiers.map((tier, idx) => (
-            <motion.div
-              key={idx}
-              whileHover={{ scale: 1.03 }}
-              className="p-5 rounded-xl bg-[#eceff4] border border-[#e5e9f0] flex flex-col justify-between shadow-xs"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-mono font-bold text-[#2e3440]">{tier.name}</span>
-                <span
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: tier.color }}
-                />
-              </div>
-              <p className="text-base font-bold text-[#2e3440]">{tier.build}</p>
-              <p className="text-xs font-mono text-[#4c566a] mt-1">{tier.spec}</p>
-            </motion.div>
-          ))}
-        </div>
       </div>
     </AnimatedSection>
   );
