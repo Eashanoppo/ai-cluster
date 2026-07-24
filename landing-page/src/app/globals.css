@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    background-color: #eceff4; /* Nord6 - Snow Storm Base Background */
+    color: #2e3440;            /* Nord0 - Polar Night Dark Text */
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    overflow-x: hidden;
+  }
+}
+
+/* Nord Snow Storm Light Ambiance Tokens */
+/* Base background: nord6 (#eceff4) */
+.bg-nord-bg { background-color: #eceff4; }
+
+/* Active line & subtle selection: nord5 (#e5e9f0) */
+.bg-nord-surface { background-color: #e5e9f0; }
+
+/* Elevated panels, cards, modals: nord4 (#d8dee9) */
+.bg-nord-raised { background-color: #d8dee9; }
+
+/* Borders & Dividers: nord4 (#d8dee9) / nord5 (#e5e9f0) */
+.border-nord-border { border-color: #d8dee9; }
+
+/* Dark text for contrast on bright background: Nord Polar Night */
+.text-nord-dark { color: #2e3440; }
+.text-nord-muted { color: #4c566a; }
+
+/* Frost Accent Palette */
+.text-nord7 { color: #8fbcbb; }
+.text-nord8 { color: #88c0d0; }
+.text-nord9 { color: #81a1c1; }
+.text-nord10 { color: #5e81ac; }
+
+/* Aurora Palette */
+.text-nord11 { color: #bf616a; }
+.text-nord12 { color: #d08770; }
+.text-nord13 { color: #ebcb8b; }
+.text-nord14 { color: #a3be8c; }
+.text-nord15 { color: #b48ead; }
+
+/* Bright Nord Shadows and Glows */
+.shadow-nord-light {
+  box-shadow: 0 10px 30px -5px rgba(46, 52, 64, 0.08), 0 4px 12px -2px rgba(46, 52, 64, 0.04);
+}
+
+.glow-nord-frost-light {
+  box-shadow: 0 0 35px -5px rgba(94, 129, 172, 0.25);
+}
+
+.bg-grid-pattern-light {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(76, 86, 106, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(76, 86, 106, 0.07) 1px, transparent 1px);
+}
