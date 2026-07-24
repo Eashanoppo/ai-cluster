@@ -16,7 +16,8 @@ import {
   Settings,
   HelpCircle,
   User,
-  History
+  History,
+  Database
 } from "lucide-react";
 import { logoutAction } from "../../actions/auth";
 import { cn } from "../../../lib/utils";
@@ -54,11 +55,14 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
       {/* Sidebar Header */}
       <div className="h-16 border-b border-border flex items-center justify-between px-4">
         <div className={cn("flex items-center gap-2.5 overflow-hidden", isCollapsed && "justify-center w-full")}>
-          <img src="/OnlyLogoNoBG.png" alt="ClustroConnect Logo" className="w-8 h-8 object-contain" />
+          <img src="/OnlyLogoNoBG.png" alt="CustroConnect" className="w-8 h-8 object-contain" />
           {!isCollapsed && (
-            <span className="font-sans font-bold text-sm tracking-tight text-white truncate">
-              NeuronOps
-            </span>
+            <div className="flex items-center gap-3 px-2 py-1">
+              <Database className="w-6 h-6 text-amber-500 flex-shrink-0" />
+              <span className="text-xl font-black text-white tracking-tight uppercase">
+              CustroConnect
+              </span>
+            </div>
           )}
         </div>
         

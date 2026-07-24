@@ -137,17 +137,17 @@ export default function SimulatorPanel({ onRefreshHistory, activeSessionId, acti
             />
           </div>
           <div>
-            <label className="block text-xs font-mono text-nord4/70 mb-1">Simulated User Traffic</label>
+            <label className="block text-xs font-mono text-nord4/70 mb-1">Workload Scale (Concurrent Jobs)</label>
             <input 
               type="range" 
-              min="1000" 
-              max="100000" 
-              step="1000"
+              min="10" 
+              max="1000" 
+              step="10"
               value={userTraffic}
               onChange={(e) => setUserTraffic(parseInt(e.target.value))}
               className="w-full accent-ws-interactive"
             />
-            <div className="text-right text-xs text-nord14 font-mono mt-1">{userTraffic.toLocaleString()} users</div>
+            <div className="text-right text-xs text-nord14 font-mono mt-1">{userTraffic.toLocaleString()} jobs</div>
           </div>
         </div>
       </div>

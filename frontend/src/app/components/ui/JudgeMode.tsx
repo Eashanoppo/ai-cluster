@@ -211,7 +211,7 @@ export function JudgeMode({ onTimelineEvent }: JudgeModeProps) {
         visible={showSummary}
         onClose={() => { setShowSummary(false); setPhase('idle'); }}
         data={costDelta ?? { downtime_prevented_sec: 12, gpu_hours_saved: 18.4, savings_pct: 19, baseline_monthly_usd: 7200, optimized_monthly_usd: 5860, carbon_saved_kg: 18 }}
-        clusterHealth={98}
+        clusterHealth={selectedScenario === 'network_partition' ? 84 : selectedScenario === 'traffic_spike' ? 92 : 98}
       />
 
       <div className="card p-5 space-y-4 border-amber-500/20 bg-amber-500/3">
@@ -316,9 +316,13 @@ export function JudgeMode({ onTimelineEvent }: JudgeModeProps) {
 
         {/* Migration Countdown */}
         {countdown !== null && (
-          <div className="flex items-center justify-center">
+          <div className="flex flex-col items-center justify-center gap-3 mt-2">
             <div className="w-20 h-20 rounded-full border-4 border-amber-400 flex items-center justify-center animate-pulse">
               <span className="text-4xl font-black text-amber-400">{countdown}</span>
+            </div>
+            <div className="bg-black/50 border border-zinc-700/50 rounded p-2 text-center">
+              <div className="text-[10px] font-mono text-zinc-400">[SYSTEM] Initiating CRIU VRAM checkpoint...</div>
+              <div className="text-[10px] font-mono text-zinc-500">Network transfer negotiated at 100Gbps RDMA</div>
             </div>
           </div>
         )}

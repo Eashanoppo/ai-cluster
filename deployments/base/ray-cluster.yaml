@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ray-head
+  namespace: ai
+  labels:
+    app: ray
+    component: head
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ray
+      component: head
+  template:
+    metadata:
+      labels:
+        app: ray
+        component: head
+    spec:
+      containers:
+      - name: ray-head
+        image: custroconnect/ray-engine:latest
+        ports:
+        - containerPort: 6379
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ray-worker
+  namespace: ai
+  labels:
+    app: ray
+    component: worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ray
+      component: worker
+  template:
+    metadata:
+      labels:
+        app: ray
+        component: worker
+    spec:
+      containers:
+      - name: ray-worker
+        image: custroconnect/ray-worker:latest

@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: 'telemetry_generator'
+    static_configs:
+      - targets: ['telemetry-service.simulation.svc.cluster.local:8001']
+        
+  - job_name: 'anomaly_engine'
+    static_configs:
+      - targets: ['anomaly-service.ai.svc.cluster.local:8000']

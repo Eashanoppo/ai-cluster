@@ -2,6 +2,8 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from .models import GpuTelemetry
 from .serializers import GpuTelemetrySerializer
 
@@ -39,6 +41,7 @@ class GpuTelemetryViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = self.get_serializer(latest_telemetries, many=True)
         return Response(serializer.data)
 
+    @method_decorator(cache_page(2))
     @action(detail=False, methods=['get'])
     def topology(self, request):
         from simulator.models import SimulationRun
@@ -91,6 +94,7 @@ class GpuTelemetryViewSet(viewsets.ReadOnlyModelViewSet):
             "migrations": migrations
         })
 
+    @method_decorator(cache_page(2))
     @action(detail=False, methods=['get'])
     def dashboard_metrics(self, request):
         from sentinel.models import Prediction

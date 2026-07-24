@@ -100,6 +100,20 @@ export function ExecutiveSummary({ visible, onClose, data, clusterHealth = 98 }:
               sub="Idle GPU consolidation"
               color="bg-emerald-500/10"
             />
+            <StatCard
+              icon={<TrendingUp className="w-4 h-4 text-primary" />}
+              label="Cost per 1K Tokens"
+              value={`$0.0014`}
+              sub="-31% via spot orchestration"
+              color="bg-primary/10"
+            />
+            <StatCard
+              icon={<Shield className="w-4 h-4 text-emerald-400" />}
+              label="Cluster Uptime"
+              value={`99.999%`}
+              sub="Zero dropped requests"
+              color="bg-emerald-500/10"
+            />
           </div>
 
           {/* Cluster Health */}

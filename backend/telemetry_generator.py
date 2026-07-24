@@ -10,8 +10,19 @@ from telemetry.models import GpuTelemetry
 from simulator.models import SimulationRun
 from django.utils import timezone
 from datetime import timedelta
+import json
+from datetime import datetime
+from django.conf import settings
+from prometheus_client import start_http_server, Gauge  # type: ignore
 
 NODES = [f"Node-{i:03d}" for i in range(1, 129)]
+
+# DCGM Exporter Metrics (simulating Prometheus naming)
+DCGM_FI_DEV_GPU_UTIL = Gauge('DCGM_FI_DEV_GPU_UTIL', 'GPU Utilization (%)', ['node', 'gpu'])
+DCGM_FI_DEV_GPU_TEMP = Gauge('DCGM_FI_DEV_GPU_TEMP', 'GPU Temperature (C)', ['node', 'gpu'])
+DCGM_FI_DEV_FB_USED = Gauge('DCGM_FI_DEV_FB_USED', 'GPU Framebuffer used (MB)', ['node', 'gpu'])
+DCGM_FI_DEV_POWER_USAGE = Gauge('DCGM_FI_DEV_POWER_USAGE', 'GPU Power usage (W)', ['node', 'gpu'])
+DCGM_FI_DEV_XID_ERRORS = Gauge('DCGM_FI_DEV_XID_ERRORS', 'Value of the last XID error encountered', ['node', 'gpu'])
 
 # Define hardware profile specs per Tier
 TIER_SPECS = {
@@ -60,9 +71,12 @@ def apply_drift(current, target_min, target_max, step=1.5):
     else:
         return max(current - random.uniform(0, step), target_min)
 
-import json
-from datetime import datetime
-from django.conf import settings
+def apply_drift(current, target_min, target_max, step=1.5):
+    target = random.uniform(target_min, target_max)
+    if current < target:
+        return min(current + random.uniform(0, step), target_max)
+    else:
+        return max(current - random.uniform(0, step), target_min)
 
 def read_disaster_state():
     state_file = os.path.join(settings.BASE_DIR, 'disaster_state.json')
@@ -80,6 +94,9 @@ def read_disaster_state():
 
 def generate_telemetry():
     print("Starting Partitioned Quadrant Telemetry Generator...")
+    # Start Prometheus HTTP server on port 8001
+    print("Starting Prometheus DCGM Exporter endpoint on http://0.0.0.0:8001/metrics")
+    start_http_server(8001)
     
     # Track persistent running telemetry metrics to drift smoothly
     last_metrics = {
@@ -164,6 +181,16 @@ def generate_telemetry():
                 
                 hist = DCGMExporterSim.generate_metrics(node, tier_spec, workload_status, hist)
                 last_metrics[node] = hist
+
+                # Update Prometheus Metrics
+                DCGM_FI_DEV_GPU_UTIL.labels(node=node, gpu='gpu0').set(hist["util"])
+                DCGM_FI_DEV_GPU_TEMP.labels(node=node, gpu='gpu0').set(hist["temp"])
+                DCGM_FI_DEV_FB_USED.labels(node=node, gpu='gpu0').set(hist["vram"])
+                DCGM_FI_DEV_POWER_USAGE.labels(node=node, gpu='gpu0').set(hist["power"])
+                
+                # Mock XID error if failure
+                xid = 43 if workload_status == "gpu_failure" else 0
+                DCGM_FI_DEV_XID_ERRORS.labels(node=node, gpu='gpu0').set(xid)
 
                 telemetry_objects.append(
                     GpuTelemetry(

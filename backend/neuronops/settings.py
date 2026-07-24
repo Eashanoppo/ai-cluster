@@ -99,6 +99,14 @@ DATABASES = {
         conn_max_age=600
     )
 }
+
+# LocMemCache to protect the database from frontend polling DDOS
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'telemetry-cache',
+    }
+}
 if DATABASES['default']['ENGINE'] == 'django.db.backends.sqlite3':
     DATABASES['default']['OPTIONS'] = {'timeout': 20}
 

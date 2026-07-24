@@ -9,6 +9,7 @@ import { MissionTimeline } from '../components/ui/MissionTimeline';
 import { JudgeMode } from '../components/ui/JudgeMode';
 import { ClusterAdvisor } from '../components/ui/ClusterAdvisor';
 import { SentinelChart } from '../components/ui/Chart';
+import ComparisonModal from '../components/ui/ComparisonModal';
 import { pollPredictions, pollApprovals, pollLearningUpdates } from '../actions/simulator';
 
 // ─────────────────────────────────────────────────────────────
@@ -19,13 +20,25 @@ import { pollPredictions, pollApprovals, pollLearningUpdates } from '../actions/
 
 export default function MissionControl() {
   const [timelineEvents, setTimelineEvents] = useState<any[]>([]);
+  const [showComparison, setShowComparison] = useState(false);
 
   const handleTimelineEvent = useCallback((event: any) => {
     setTimelineEvents(prev => [event, ...prev].slice(0, 40));
   }, []);
 
   return (
-    <div className="space-y-5 font-sans pb-8">
+    <div className="space-y-5 font-sans pb-8 relative">
+      {/* ── TOP ACTION BAR ── */}
+      <div className="flex justify-end">
+        <button 
+          onClick={() => setShowComparison(true)}
+          className="px-4 py-2 bg-primary/20 border border-primary text-primary text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-primary/30 transition-colors"
+        >
+          Compare vs Traditional Scheduler
+        </button>
+      </div>
+
+      {showComparison && <ComparisonModal onClose={() => setShowComparison(false)} />}
 
       {/* ── TOP STRIP: Cluster Health + Judge Mode ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">

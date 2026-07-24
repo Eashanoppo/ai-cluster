@@ -40,7 +40,7 @@ export default function DashboardLayout({
           {/* Main Top Header */}
           <header className="h-16 border-b border-border bg-background flex items-center justify-between px-6 z-25 flex-shrink-0">
             <div className="flex items-center gap-3">
-              <span className="text-lg font-bold text-white tracking-tight">NeuronOps</span>
+              <span className="text-lg font-bold text-white tracking-tight">CustroConnect</span>
               <div className="hidden sm:flex px-2 py-0.5 border border-primary/20 bg-primary/10 text-primary rounded-full font-mono text-[9px] font-bold items-center gap-1 uppercase">
                 <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
                 Cluster Twin · Live

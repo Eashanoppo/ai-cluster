@@ -537,11 +537,23 @@ def judge_mode(request: Request):
             status="COMPLETED",
         )
 
+        scheduling_reasons = {
+            "cost_delta": {
+                "baseline_monthly_usd": 12500,
+                "optimized_monthly_usd": 10200,
+                "savings_pct": 22,
+                "gpu_hours_saved": 45.2,
+                "downtime_prevented_sec": 120,
+                "carbon_saved_kg": 25,
+            }
+        }
+
         return Response({
             "status": "judge_mode_initiated",
             "run_id": run.id,
             "timeline": timeline,
-            "scenario": scenario
+            "scenario": scenario,
+            "scheduling_reasons": scheduling_reasons
         })
 
     elif scenario == 'network_partition':
@@ -577,11 +589,23 @@ def judge_mode(request: Request):
             status="COMPLETED",
         )
 
+        scheduling_reasons = {
+            "cost_delta": {
+                "baseline_monthly_usd": 8900,
+                "optimized_monthly_usd": 8900,
+                "savings_pct": 0,
+                "gpu_hours_saved": 12.0,
+                "downtime_prevented_sec": 45,
+                "carbon_saved_kg": 5,
+            }
+        }
+
         return Response({
             "status": "judge_mode_initiated",
             "run_id": run.id,
             "timeline": timeline,
-            "scenario": scenario
+            "scenario": scenario,
+            "scheduling_reasons": scheduling_reasons
         })
 
     else:

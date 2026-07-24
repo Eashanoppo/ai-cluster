@@ -51,9 +51,26 @@ export function NodeTopology() {
   };
 
   useEffect(() => {
-    fetchTelemetry();
-    const interval = setInterval(fetchTelemetry, 1000);
-    return () => clearInterval(interval);
+    let timeoutId: NodeJS.Timeout;
+    let isMounted = true;
+    
+    const pollWithJitter = async () => {
+      if (!isMounted) return;
+      await fetchTelemetry();
+      
+      if (isMounted) {
+        // Base delay of 2500ms + random jitter of 0-500ms
+        const jitter = Math.floor(Math.random() * 500);
+        timeoutId = setTimeout(pollWithJitter, 2500 + jitter);
+      }
+    };
+    
+    pollWithJitter();
+    
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   const handleNodeMouseEnter = (e: React.MouseEvent<HTMLDivElement> | React.FocusEvent<HTMLDivElement>, node: TelemetryNode) => {
