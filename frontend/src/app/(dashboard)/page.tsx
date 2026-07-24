@@ -263,7 +263,7 @@ export default async function DashboardOverview() {
                 }
                 
                 return (
-                  <div key={update.id || idx} className={`p-3 border rounded-lg ${colorClass}`}>
+                  <div key={`${update.id || 'update'}-${idx}`} className={`p-3 border rounded-lg ${colorClass}`}>
                     <div className="flex justify-between items-start mb-1">
                       <span className="text-sm font-bold text-white">{update.action}</span>
                       <span className="text-xs text-zinc-500 font-mono">{new Date(update.timestamp).toLocaleTimeString()}</span>

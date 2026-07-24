@@ -16,6 +16,9 @@ django.setup()
 
 LLM_MODEL = getattr(settings, 'LLM_MODEL', 'llama3') or 'llama3'
 
+from telemetry.prometheus_sim import PrometheusSim
+from cluster_infra.kubernetes_sim import KubernetesSim, PodSpec
+from cluster_infra.ray_sim import RaySim
 from telemetry.models import GpuTelemetry
 from sentinel.models import Prediction, Alert
 from scheduler.models import WorkloadPlacement
@@ -81,12 +84,23 @@ class PredictionEngine:
     def __init__(self):
         self.iso_forest = IsolationForest(contamination=0.1, random_state=42) if ML_AVAILABLE else None
 
-    def analyze(self, telemetry_batch):
-        if not ML_AVAILABLE or self.iso_forest is None or len(telemetry_batch) < 3:
+    def analyze(self):
+        if not ML_AVAILABLE or self.iso_forest is None:
             return {}
+            
+        temps = PrometheusSim.query("dcgm_fi_dev_gpu_temp")
+        utils = PrometheusSim.query("dcgm_fi_dev_gpu_util")
+        powers = PrometheusSim.query("dcgm_fi_dev_power_usage")
         
-        features = [[t.temperature_celsius, t.gpu_utilization_percent, t.power_draw_watts] for t in telemetry_batch]
-        node_ids = [t.node_id for t in telemetry_batch]
+        if not temps:
+            return {}
+            
+        temp_map = {item['metric']['node']: float(item['value'][1]) for item in temps}
+        util_map = {item['metric']['node']: float(item['value'][1]) for item in utils}
+        power_map = {item['metric']['node']: float(item['value'][1]) for item in powers}
+        
+        node_ids = list(temp_map.keys())
+        features = [[temp_map[n], util_map.get(n, 0), power_map.get(n, 0)] for n in node_ids]
         
         X = np.array(features)
         try:
@@ -170,7 +184,80 @@ class MigrationEngine:
             job_id=f"MIG-{int(time.time())}", source_node=hot_node, target_node=target_node,
             reason=reason, status="COMPLETED"
         )
+        # Call Kubernetes API to actually trigger migration
+        pod_id = KubernetesSim.create_deployment(PodSpec(
+            workload_id=f"workload-{int(time.time())}",
+            image="aios-workload",
+            resources={"gpu": 1},
+            affinity={"node_target": target_node},
+            tolerations=["maintenance"]
+        ))
+        RaySim.assign_worker(pod_id, "migrated-workload")
+        
         learning_engine.log_experience("LIVE MIGRATION", hot_node, reason)
+
+class ConsolidationEngine:
+    """ Consolidates fragmented workloads to save power """
+    def evaluate(self, util_map, admin_user, learning_engine):
+        recent_action = ApprovalRequest.objects.filter(action_type="CONSOLIDATION", requested_at__gte=timezone.now() - timedelta(minutes=1)).exists()
+        if recent_action:
+            return
+            
+        underutilized = [node for node, util in util_map.items() if 0 < util < 30]
+        if len(underutilized) > 1:
+            target = underutilized[0]
+            sources = underutilized[1:4] # Consolidate up to 3 at a time
+            for src in sources:
+                reason = "WORKLOAD CONSOLIDATION"
+                ApprovalRequest.objects.create(
+                    action_type="CONSOLIDATION", target_resource=src,
+                    reason=reason, status="APPROVED", approved_by=admin_user
+                )
+                WorkloadPlacement.objects.create(
+                    job_id=f"CONSOLIDATE-{int(time.time())}-{src}", source_node=src, target_node=target,
+                    reason=reason, status="COMPLETED"
+                )
+                pod_id = KubernetesSim.create_deployment(PodSpec(
+                    workload_id=f"workload-{int(time.time())}",
+                    image="aios-workload",
+                    resources={"gpu": 1},
+                    affinity={"node_target": target},
+                    tolerations=["maintenance"]
+                ))
+                RaySim.assign_worker(pod_id, "consolidated-workload")
+                learning_engine.log_experience("WORKLOAD CONSOLIDATION", src, reason)
+
+class WorkloadSchedulerEngine:
+    """ Processes queued SimulationRun instances from TrafficGenerator """
+    def evaluate(self, admin_user, learning_engine):
+        from simulator.models import SimulationRun
+        from cluster_infra.kubernetes_sim import KubernetesSim, PodSpec
+        from cluster_infra.ray_sim import RaySim
+        import random
+
+        # Process queued
+        queued_runs = SimulationRun.objects.filter(status='queued')[:50]
+        for run in queued_runs:
+            run.status = 'processing'
+            run.save()
+            
+            # Simulate Kubernetes and Ray assignment
+            pod_id = KubernetesSim.create_deployment(PodSpec(
+                workload_id=f"workload-{run.id}",
+                image="aios-workload",
+                resources={"gpu": run.required_nodes},
+                affinity={"node_target": "auto"},
+                tolerations=[]
+            ))
+            RaySim.assign_worker(pod_id, f"sim-workload-{run.id}")
+            
+        # Transition old processing to completed 
+        processing_runs = list(SimulationRun.objects.filter(status='processing').order_by('id')[:50])
+        for run in processing_runs:
+            if random.random() > 0.5: # 50% chance to complete per tick
+                run.status = 'completed'
+                run.efficiency_pct = random.uniform(80.0, 99.9)
+                run.save()
 
 class SchedulerEngine:
     """ Phase 20: Scheduling Engine """
@@ -180,6 +267,8 @@ class SchedulerEngine:
         self.cost_engine = CostEngine()
         self.capacity_engine = CapacityEngine()
         self.migration_engine = MigrationEngine()
+        self.consolidation_engine = ConsolidationEngine()
+        self.workload_scheduler = WorkloadSchedulerEngine()
 
     def run_loop(self):
         print("Starting Digital Twin Processors Engine (Docs 20-25)...")
@@ -189,12 +278,17 @@ class SchedulerEngine:
             admin_user = None
 
         while True:
-            # 1. Collect Telemetry
-            latest_telemetry_qs = GpuTelemetry.objects.filter(node_id=OuterRef('node_id')).order_by('-timestamp').values('id')[:1]
-            telemetries = list(GpuTelemetry.objects.filter(id__in=Subquery(latest_telemetry_qs)))
+            # 1. Collect Telemetry via Prometheus
+            temps = PrometheusSim.query("dcgm_fi_dev_gpu_temp")
+            utils = PrometheusSim.query("dcgm_fi_dev_gpu_util")
+            powers = PrometheusSim.query("dcgm_fi_dev_power_usage")
+            
+            temp_map = {item['metric']['node']: float(item['value'][1]) for item in temps}
+            util_map = {item['metric']['node']: float(item['value'][1]) for item in utils}
+            power_map = {item['metric']['node']: float(item['value'][1]) for item in powers}
             
             # 2. Run Prediction Engine (Phase 21)
-            anomaly_scores = self.prediction_engine.analyze(telemetries)
+            anomaly_scores = self.prediction_engine.analyze()
             
             idle_nodes = []
             hot_nodes = []
@@ -204,30 +298,33 @@ class SchedulerEngine:
             new_alerts = []
             new_cost_reports = []
 
-            for t in telemetries:
-                base_prob = max(0.01, min(0.95, (t.temperature_celsius - 40) / 60.0))
-                prob = max(base_prob, anomaly_scores.get(t.node_id, 0.01))
+            for node_id, temp in temp_map.items():
+                util = util_map.get(node_id, 0)
+                power = power_map.get(node_id, 0)
+                
+                base_prob = max(0.01, min(0.95, (temp - 40) / 60.0))
+                prob = max(base_prob, anomaly_scores.get(node_id, 0.01))
                 
                 if prob > max_prob:
                     max_prob = prob
-                    max_prob_node = t.node_id
+                    max_prob_node = node_id
                 
                 # Use Learning Engine dynamic threshold
                 thermal_threshold = self.learning_engine.knowledge_base.get("thermal_threshold", 90.0)
                 
-                if t.temperature_celsius >= thermal_threshold or prob > 0.90:
-                    hot_nodes.append((t.node_id, t.temperature_celsius))
-                    if not Alert.objects.filter(node_id=t.node_id, resolved=False).exists():
-                        new_alerts.append(Alert(node_id=t.node_id, severity="CRITICAL", message=f"ML Predicted Anomaly (Score: {prob*100:.0f}%)"))
-                elif t.temperature_celsius < 85 and prob < 0.70:
-                    Alert.objects.filter(node_id=t.node_id, resolved=False).update(resolved=True)
+                if temp >= thermal_threshold or prob > 0.90:
+                    hot_nodes.append((node_id, temp))
+                    if not Alert.objects.filter(node_id=node_id, resolved=False).exists():
+                        new_alerts.append(Alert(node_id=node_id, severity="CRITICAL", message=f"ML Predicted Anomaly (Score: {prob*100:.0f}%)"))
+                elif temp < 85 and prob < 0.70:
+                    Alert.objects.filter(node_id=node_id, resolved=False).update(resolved=True)
 
                 # 3. Cost Engine (Phase 23)
-                if t.gpu_utilization_percent < 5:
-                    idle_nodes.append(t.node_id)
-                    wasted_cost = (t.power_draw_watts / 1000) * KWH_COST_USD
-                    new_cost_reports.append(CostReport(node_id=t.node_id, idle_time_hours=1.0, wasted_cost_usd=wasted_cost))
-                    self.cost_engine.evaluate(t.node_id, t.gpu_utilization_percent, t.power_draw_watts, admin_user, self.learning_engine)
+                if util < 5:
+                    idle_nodes.append(node_id)
+                    wasted_cost = (power / 1000) * KWH_COST_USD
+                    new_cost_reports.append(CostReport(node_id=node_id, idle_time_hours=1.0, wasted_cost_usd=wasted_cost))
+                    self.cost_engine.evaluate(node_id, util, power, admin_user, self.learning_engine)
 
             if new_alerts: Alert.objects.bulk_create(new_alerts, ignore_conflicts=True)
             if new_cost_reports: CostReport.objects.bulk_create(new_cost_reports, ignore_conflicts=True)
@@ -254,6 +351,12 @@ class SchedulerEngine:
                     reason = f"Deterministic Heuristic: Thermal breach at {temp:.1f}C. No idle nodes."
                     ApprovalRequest.objects.create(action_type="KILL NON-ESSENTIAL", target_resource=hot_node, reason=reason, status="APPROVED", approved_by=admin_user)
                     self.learning_engine.log_experience("KILL NON-ESSENTIAL", hot_node, reason)
+                    
+            # 6. Consolidation Engine (Merge Workloads)
+            self.consolidation_engine.evaluate(util_map, admin_user, self.learning_engine)
+
+            # 7. Workload Scheduler Engine
+            self.workload_scheduler.evaluate(admin_user, self.learning_engine)
 
             time.sleep(2)
 

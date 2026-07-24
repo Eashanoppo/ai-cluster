@@ -155,3 +155,14 @@ export async function getDashboardMetrics(): Promise<any> {
 export async function getLearningUpdates(): Promise<any[]> {
   return fetchWithAuth('/telemetry/learning_updates/')
 }
+
+export async function setSimulatorScenario(data: any): Promise<any> {
+  return fetchWithAuth('/simulator/scenario/', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
+}
+
+export async function getSimulatorScenario(): Promise<any> {
+  return fetchWithAuth('/simulator/scenario/')
+}

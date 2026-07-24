@@ -1,87 +1,46 @@
-# 🔄 Workload Execution Lifecycle
+# Workload Lifecycle
 
-## 1. Overview
+The handling of workloads in NeuronOps represents a massive distributed state machine. Because the system is designed to simulate a real datacenter acting under intense stress, workloads are not processed synchronously. Instead, they flow through an asynchronous queuing architecture.
 
-This document documents the lifecycle of a simulation workload submitted to NeuronOps. Workloads are represented in the database as `SimulationRun` model records ([backend/simulator/models.py](file:///d:/Ai-Cluster/backend/simulator/models.py)).
-
----
-
-## 2. Workload State Machine Diagram
+## Architecture
 
 ```mermaid
-stateDiagram-v2
-    [*] --> Analyzing: Task Submitted via Workstation API
-
-    state Analyzing {
-        [*] --> ParameterEvaluation: calculate_required_nodes()
-        [*] --> TierSelection: assess_allocation()
-    }
-
-    state Processing {
-        [*] --> ActiveGridAllocation: Telemetry generator activates nodes
-        [*] --> AIReportGeneration: Async agy_service.py invocation
-    }
-
-    state TerminalState {
-        [*] --> Completed: AI report attached & verdict rendered
-        [*] --> Failed: AI autonomous termination / thermal eviction
-    }
-
-    Analyzing --> Processing: DB record saved with selected_tier
-    Processing --> Completed: agy_service.py succeeds / report saved
-    Processing --> Failed: Cluster load > 80% & AI selects task type for termination
+graph TD
+    User([Operator Workstation])
+    API[Django REST API]
+    TG[TrafficGenerator Daemon]
+    DB[(SimulationRun Database)]
+    Control[SchedulerEngine (processor.py)]
+    K8s[KubernetesSim]
+    Ray[RaySim]
+    
+    User -- "Selects Scenario & Time Accel" --> API
+    API -- "Configures" --> TG
+    TG -- "Bulk Creates (Queued)" --> DB
+    Control -- "Polls (Queued)" --> DB
+    Control -- "Transitions to (Processing)" --> DB
+    Control -- "Dispatches" --> K8s
+    Control -- "Dispatches" --> Ray
+    Control -- "Evaluates & Completes" --> DB
 ```
 
----
+## The 3 Phases of a Workload
 
-## 3. Workload State Definitions
+Every workload (represented by the `SimulationRun` model in `backend/simulator/models.py`) goes through the following lifecycle.
 
-### 1. `analyzing`
-* **Trigger**: Client issues `POST /api/simulator/runs/`.
-* **Actions**:
-  * Calculates `required_nodes`.
-  * Runs tier evaluation algorithms (`assess_allocation()`).
-  * Assigns initial parameters (`selected_tier`, `allocated_nodes_actual`, `verdict`).
+### 1. Ingestion (`status='queued'`)
+Triggered by the `TrafficGenerator`.
+When an operator activates a Scenario (e.g. `viral_event`), the Traffic Generator calculates the Requests Per Second (RPS) and multi-threads `bulk_create` operations into the Postgres/SQLite database. It assigns a random task type (e.g. `video_generation`, `llm_training`), assigning it a priority, but leaving the `allocated_nodes` and hardware decisions blank.
 
-### 2. `processing`
-* **Trigger**: Initial allocation assessment completes.
-* **Actions**:
-  * Saves `SimulationRun` with status `processing`.
-  * Telemetry generator detects run in active 120-second window and drives active node metrics.
-  * Dispatches asynchronous task to `agy_service.py` to generate structured report.
+### 2. Allocation (`status='processing'`)
+Triggered by the `WorkloadSchedulerEngine` inside `processor.py`.
+The Control Plane continuously loops, picking up batches of 50 `queued` runs. It queries the `WorkloadEngine` to compute:
+- How many nodes are required.
+- Which Tier is appropriate (e.g., Tier 4 Blackwells for LLM Training).
+It then mocks deployment by invoking `KubernetesSim.create_deployment()` and `RaySim.assign_worker()`. The status in the database is transitioned to `processing`.
 
-### 3. `completed`
-* **Trigger**: `agy_service.py` finishes generating AI breakdown, recommendations, and talking points.
-* **Actions**:
-  * Populates `bottleneck_analysis`, `recommendations`, `demo_talking_points`, `ai_raw_report`.
-  * Sets `completed_at = timezone.now()` and status `completed`.
-
-### 4. `failed`
-* **Trigger**: System load exceeds 80% capacity and the autonomous AI processor engine selects this workload category for load shedding.
-* **Actions**:
-  * Updates `response_text = "[AI AUTONOMOUS OVERRIDE] Task terminated to stabilize cluster load."`.
-  * Sets status `failed`.
-
----
-
-## 4. API Response Structure for Active Workload
-
-When frontend clients query active simulation runs (`GET /api/simulator/runs/active/`), the backend returns structured JSON payload matching the active state:
-
-```json
-{
-  "id": 42,
-  "task_type": "large_ml_project",
-  "user_count": 100,
-  "selected_tier": 4,
-  "allocated_nodes": 64,
-  "allocated_nodes_actual": 64,
-  "required_nodes": 64,
-  "efficiency_pct": 100.0,
-  "verdict": "optimal",
-  "status": "completed",
-  "bottleneck_analysis": "All 64 Blackwell B200 nodes operating at 98% efficiency with 192GB HBM3 VRAM per node.",
-  "created_at": "2026-07-22T05:30:00Z",
-  "completed_at": "2026-07-22T05:30:03Z"
-}
-```
+### 3. Resolution (`status='completed'` or `failed`)
+Still managed by the `WorkloadSchedulerEngine`.
+Because this is a time-accelerated simulation, jobs do not actually run for hours. During every tick of the Control Plane loop, there is a probability matrix applied to all `processing` jobs. 
+- Some jobs successfully finish and are marked `completed`, receiving a randomized `efficiency_pct`.
+- If the AI Control Plane was forced to perform **Capacity Shedding** due to extreme cluster heat or load (>95%), batch workloads may be forcefully terminated and transitioned to `failed`.

@@ -229,7 +229,7 @@ def workload_preview(request: Request) -> Response:
 @permission_classes([IsAuthenticated])
 def simulation_runs(request: Request) -> Response:
     if request.method == "GET":
-        runs = SimulationRun.objects.all()
+        runs = SimulationRun.objects.all().order_by('-id')[:50]
         serializer = SimulationRunListSerializer(runs, many=True)
         return Response(serializer.data)
 
@@ -436,7 +436,7 @@ def inject_failure(request: Request):
     Phase 6: Failure Injection Panel.
     Writes the requested disaster scenario to a state file that telemetry_generator.py reads.
     """
-    scenario = request.data.get('scenario', 'manual')
+    scenario = request.data.get('scenario', 'manual')  # type: ignore
     state_file = os.path.join(settings.BASE_DIR, 'disaster_state.json')
     
     try:
@@ -445,3 +445,34 @@ def inject_failure(request: Request):
         return Response({"status": "success", "scenario": scenario})
     except Exception as e:
         return Response({"error": str(e)}, status=500)
+
+
+@api_view(['POST', 'GET'])
+@permission_classes([AllowAny])
+def scenario_control(request: Request):
+    from .scenario_engine import ScenarioEngine
+    from .traffic_generator import TrafficGenerator
+    
+    if request.method == 'GET':
+        state = ScenarioEngine.get_state()
+        return Response({
+            "status": "running" if TrafficGenerator._running else "stopped",
+            "state": state
+        })
+        
+    action = request.data.get('action')  # type: ignore
+    if action == 'start':
+        scenario_id = request.data.get('scenario_id', 'startup')  # type: ignore
+        acceleration = int(request.data.get('acceleration', 1))  # type: ignore
+        duration = int(request.data.get('duration_mins', 0))  # type: ignore
+        allowed_tasks = request.data.get('allowed_tasks', [])  # type: ignore
+        
+        ScenarioEngine.set_scenario(scenario_id, acceleration, duration, allowed_tasks)
+        TrafficGenerator.start()
+        return Response({"status": "started"})
+        
+    elif action == 'stop':
+        TrafficGenerator.stop()
+        return Response({"status": "stopped"})
+        
+    return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)

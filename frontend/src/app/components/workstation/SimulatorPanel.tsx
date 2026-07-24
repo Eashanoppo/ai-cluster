@@ -14,9 +14,27 @@ export default function SimulatorPanel({ onRefreshHistory, activeSessionId, acti
   const [userTraffic, setUserTraffic] = useState(50000);
   const [workloadType, setWorkloadType] = useState('large_ml_project');
   const [priority, setPriority] = useState('Critical');
+  const [trafficProfile, setTrafficProfile] = useState('normal');
   const [scenario, setScenario] = useState('manual');
   const [isInjecting, setIsInjecting] = useState(false);
   const [isSpawning, setIsSpawning] = useState(false);
+
+  const applyScenario = (preset: string) => {
+    switch(preset) {
+      case 'startup':
+        setCompanyName('Startup Inc'); setUserTraffic(500); setWorkloadType('normal_chats'); setTrafficProfile('normal');
+        break;
+      case 'growing':
+        setCompanyName('ScaleUp AI'); setUserTraffic(20000); setWorkloadType('production_saas'); setTrafficProfile('peak');
+        break;
+      case 'enterprise':
+        setCompanyName('Global Enterprise'); setUserTraffic(100000); setWorkloadType('production_saas'); setTrafficProfile('normal');
+        break;
+      case 'research':
+        setCompanyName('AI Research Lab'); setUserTraffic(5000); setWorkloadType('large_ml_project'); setTrafficProfile('deadline');
+        break;
+    }
+  };
 
   const handleSpawnWorkload = async () => {
     setIsSpawning(true);
@@ -24,14 +42,14 @@ export default function SimulatorPanel({ onRefreshHistory, activeSessionId, acti
       await createSimulationRun({
         task_type: workloadType,
         user_count: userTraffic,
-        allocated_nodes: Math.floor(userTraffic / 1000) + 1, // rough estimate
+        allocated_nodes: (Math.floor(userTraffic / 1000) + 1) * (trafficProfile === 'viral' ? 5 : (trafficProfile === 'peak' ? 2 : 1)),
         file_input_size_gb: 50.0,
         image_count: 0,
         thinking_depth: 3,
-        complexity_factor: 2.0,
+        complexity_factor: trafficProfile === 'viral' ? 5.0 : (trafficProfile === 'peak' ? 2.0 : 1.0),
         company_name: companyName,
         priority: priority,
-        prompt: `Spawned ${workloadType} workload for ${companyName} (${userTraffic} users, Priority: ${priority})`,
+        prompt: `Spawned ${workloadType} workload for ${companyName} (${userTraffic} users, Priority: ${priority}, Traffic: ${trafficProfile})`,
         chat_session_id: activeSessionId || undefined,
       });
       onRefreshHistory();
@@ -76,6 +94,31 @@ export default function SimulatorPanel({ onRefreshHistory, activeSessionId, acti
           Simulator Engine
         </h2>
         <p className="text-xs text-nord4/60 mt-1">Configure company profiles, generate workloads, and inject disasters.</p>
+      </div>
+
+      {/* Scenario Presets */}
+      <div className="bg-ws-surface rounded-lg p-5 border border-border shadow-sm">
+        <h3 className="text-sm font-semibold text-nord4 mb-4 flex items-center gap-2">
+          <Zap className="w-4 h-4 text-ws-interactive" /> Scenario Engine Presets
+        </h3>
+        <div className="grid grid-cols-2 gap-2">
+          <button onClick={() => applyScenario('startup')} className="text-xs p-2 bg-ws-bg border border-border hover:border-ws-interactive rounded text-left">
+            <div className="font-bold text-nord4">Startup</div>
+            <div className="text-[9px] text-nord4/60 mt-0.5">500 Users · Normal</div>
+          </button>
+          <button onClick={() => applyScenario('growing')} className="text-xs p-2 bg-ws-bg border border-border hover:border-ws-interactive rounded text-left">
+            <div className="font-bold text-nord4">Growing SaaS</div>
+            <div className="text-[9px] text-nord4/60 mt-0.5">20k Users · Peak</div>
+          </button>
+          <button onClick={() => applyScenario('enterprise')} className="text-xs p-2 bg-ws-bg border border-border hover:border-ws-interactive rounded text-left">
+            <div className="font-bold text-nord4">Enterprise</div>
+            <div className="text-[9px] text-nord4/60 mt-0.5">100k Users · SaaS</div>
+          </button>
+          <button onClick={() => applyScenario('research')} className="text-xs p-2 bg-ws-bg border border-border hover:border-ws-interactive rounded text-left">
+            <div className="font-bold text-nord4">AI Research Lab</div>
+            <div className="text-[9px] text-nord4/60 mt-0.5">Heavy GPU Util</div>
+          </button>
+        </div>
       </div>
 
       {/* Company Wizard */}
@@ -127,6 +170,20 @@ export default function SimulatorPanel({ onRefreshHistory, activeSessionId, acti
               <option value="video_generation">Video Generation (High Compute)</option>
               <option value="ocr_data_retrieval">OCR Processing (Batch)</option>
               <option value="production_saas">Production SaaS Workload</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-mono text-nord4/70 mb-1">Traffic Profile</label>
+            <select 
+              value={trafficProfile}
+              onChange={(e) => setTrafficProfile(e.target.value)}
+              className="w-full bg-ws-bg border border-border rounded-md px-3 py-2 text-sm text-nord4 focus:border-ws-interactive outline-none transition-colors"
+            >
+              <option value="normal">Normal Steady Traffic</option>
+              <option value="peak">Peak Hours (Morning/Evening)</option>
+              <option value="viral">Viral Event (Massive Spike)</option>
+              <option value="breaking_news">Breaking News (Explosive Demand)</option>
+              <option value="deadline">Research Deadline (Long Running)</option>
             </select>
           </div>
           <div>

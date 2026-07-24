@@ -141,44 +141,29 @@ def generate_telemetry():
                 hist = last_metrics[node]
                 is_active = idx in active_node_indices
                 
-                if is_active:
-                    assigned_tier = node_tier_map[idx]
-                    spec = TIER_SPECS[assigned_tier]
-                    vram_total = spec["vram_total_mb"]
-                    hist["temp"] = apply_drift(hist["temp"], spec["temp_min"], spec["temp_max"])
-                    hist["util"] = apply_drift(hist["util"], spec["util_min"], spec["util_max"])
-                    hist["vram"] = apply_drift(hist["vram"], vram_total * 0.7, vram_total * 0.9)
-                    hist["power"] = apply_drift(hist["power"], spec["power_min"], spec["power_max"])
-                else:
-                    # Inactive / OFF state: room temperature, 0 utilization, 0 VRAM, standby 10W power
-                    vram_total = 24576  # Default VRAM total for inactive nodes
-                    # Determine actual vram total based on node quadrant if needed
-                    node_quad = (idx // 32) + 1
-                    if node_quad in TIER_SPECS:
-                        vram_total = TIER_SPECS[node_quad]["vram_total_mb"]
-
-                    hist["temp"] = apply_drift(hist["temp"], 25.0, 30.0)
-                    hist["util"] = apply_drift(hist["util"], 0.0, 0.0)
-                    hist["vram"] = apply_drift(hist["vram"], 0.0, 0.0)
-                    hist["power"] = apply_drift(hist["power"], 8.0, 12.0)
+                from telemetry.dcgm_exporter_sim import DCGMExporterSim
                 
-                # Apply simulated crash if selected
+                workload_status = "idle"
+                if is_active:
+                    workload_status = "active"
+                
                 if injected_scenario == 'gpu_failure' and node == thermal_crash_node:
-                    hist["temp"] = 99.5
-                    hist["util"] = 100.0
+                    workload_status = "gpu_failure"
                 elif injected_scenario == 'memory_leak' and node == thermal_crash_node:
-                    hist["vram"] = vram_total * 0.99
-                    hist["temp"] = apply_drift(hist["temp"], 80.0, 85.0)
+                    workload_status = "memory_leak"
                 elif injected_scenario == 'kill_gpu' and node == thermal_crash_node:
-                    hist["util"] = 0.0
-                    hist["power"] = 0.0
-                    hist["vram"] = 0.0
+                    workload_status = "idle"
                 elif injected_scenario == 'shutdown_node' and node == thermal_crash_node:
-                    # Simulates node disconnected (or 0 everything)
-                    hist["temp"] = 25.0
-                    hist["util"] = 0.0
-                    hist["power"] = 0.0
-                    hist["vram"] = 0.0
+                    workload_status = "idle"
+
+                assigned_tier = node_tier_map.get(idx, (idx // 32) + 1)
+                if assigned_tier not in TIER_SPECS:
+                    assigned_tier = 1
+                tier_spec = TIER_SPECS[assigned_tier]
+                vram_total = tier_spec["vram_total_mb"]
+                
+                hist = DCGMExporterSim.generate_metrics(node, tier_spec, workload_status, hist)
+                last_metrics[node] = hist
 
                 telemetry_objects.append(
                     GpuTelemetry(

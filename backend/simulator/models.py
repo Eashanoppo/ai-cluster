@@ -24,8 +24,9 @@ class CompanyProfile(models.Model):
     cpu_nodes = models.IntegerField(default=64)
     budget = models.IntegerField(default=500000)
     
-    # Selected Services
+    # Selected Services & Workloads
     services = models.JSONField(default=list)
+    allowed_tasks = models.JSONField(default=list)
     
     created_at = models.DateTimeField(auto_now_add=True)
 

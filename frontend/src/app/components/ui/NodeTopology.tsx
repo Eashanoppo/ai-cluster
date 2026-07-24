@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { pollLatestTelemetry } from '../../actions/telemetry';
+import { pollLatestTelemetry, pollTopology } from '../../actions/telemetry';
 import { Thermometer, Zap, Database, Layers } from 'lucide-react';
 
 interface TelemetryNode {
@@ -17,6 +17,7 @@ interface TelemetryNode {
 
 export function NodeTopology() {
   const [nodes, setNodes] = useState<TelemetryNode[]>([]);
+  const [migrations, setMigrations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -28,10 +29,15 @@ export function NodeTopology() {
   const fetchTelemetry = async () => {
     try {
       const data = await pollLatestTelemetry();
+      const topData = await pollTopology();
+      
       if (data && data.length > 0) {
         // Ensure sorted by Node ID (Node-001 to Node-128)
         const sorted = [...data].sort((a, b) => a.node_id.localeCompare(b.node_id));
         setNodes(sorted);
+        if (topData && topData.migrations) {
+          setMigrations(topData.migrations);
+        }
         setError(null);
       } else {
         setError("Connection Lost");
@@ -196,17 +202,23 @@ export function NodeTopology() {
                   let cellStyle: React.CSSProperties = {};
                   let cellClass = "";
 
-                  if (isNodeActive) {
-                    cellStyle = {
-                      backgroundColor: quad.activeColor,
-                      borderColor: quad.borderColor,
-                    };
-                    cellClass = `${quad.activeText} shadow-sm font-semibold scale-100 hover:scale-105`;
-                    if (quad.id === 4) {
-                      cellClass += " animate-pulse";
-                    }
+                  const isMigratingFrom = migrations.some(m => m.from === node.node_id && !m.reason.includes('CONSOLIDATION'));
+                  const isMigratingTo = migrations.some(m => m.to === node.node_id && !m.reason.includes('CONSOLIDATION'));
+                  const isMergingFrom = migrations.some(m => m.from === node.node_id && m.reason.includes('CONSOLIDATION'));
+                  const isMergingTo = migrations.some(m => m.to === node.node_id && m.reason.includes('CONSOLIDATION'));
+
+                  if (isMigratingFrom || isMigratingTo) {
+                    cellClass = "bg-[#81a1c1] text-black shadow-sm font-bold scale-100 hover:scale-105 animate-pulse border-[#5e81ac]";
+                  } else if (isMergingFrom || isMergingTo) {
+                    cellClass = "bg-[#b48ead] text-black shadow-sm font-bold scale-100 hover:scale-105 animate-pulse border-[#b48ead]";
+                  } else if (node.gpu_utilization_percent > 85 || node.temperature_celsius > 85) {
+                    cellClass = "bg-[#bf616a] text-white shadow-sm font-bold scale-100 hover:scale-105 border-[#bf616a] animate-pulse";
+                  } else if (node.gpu_utilization_percent === 0) {
+                    cellClass = "bg-white/10 hover:bg-white/20 text-white/50 border-white/20 opacity-70";
+                  } else if (node.gpu_utilization_percent > 0 && node.gpu_utilization_percent < 30) {
+                    cellClass = "bg-[#ebcb8b] text-black shadow-sm font-bold scale-100 hover:scale-105 border-[#d4b070]";
                   } else {
-                    cellClass = "bg-zinc-800/40 hover:bg-zinc-800/70 text-zinc-600 border-zinc-700/50";
+                    cellClass = "bg-[#a3be8c] text-black shadow-sm font-bold scale-100 hover:scale-105 border-[#88a872]";
                   }
 
                   return (

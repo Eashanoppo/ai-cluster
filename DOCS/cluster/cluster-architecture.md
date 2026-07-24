@@ -1,57 +1,42 @@
-# ⚡ GPU Cluster Architecture & Grid Topology
+# Cluster Architecture
 
-## 1. Cluster Abstraction Overview
+## Physical Layout Simulation
+NeuronOps simulates a massive 128-node GPU cluster. Rather than dealing with homogenous nodes, the datacenter is segmented into **Tiers**, representing generational hardware leaps and varying capabilities.
 
-The **NeuronOps** GPU cluster simulates a high-density, multi-tenant AI datacenter environment consisting of **128 compute nodes** organized into a strict 16x8 matrix grid map. The cluster is partitioned into **4 Hardware Quadrants** representing distinct technological generations of GPU architecture.
-
----
-
-## 2. 128-Node Grid Layout & Quadrant Partitioning
-
-```
-+-----------------------------------------------------------------------------------+
-|                            NEURONOPS 128-NODE GRID MAP                            |
-+---------------------------------+-------------------------------------------------+
-| TIER 1: RTX 3090 (Nodes 001-032)| TIER 2: RTX 4090 (Nodes 033-064)                |
-| Nodes 001 - 016 (Row 1)         | Nodes 033 - 048 (Row 3)                         |
-| Nodes 017 - 032 (Row 2)         | Nodes 049 - 064 (Row 4)                         |
-+---------------------------------+-------------------------------------------------+
-| TIER 3: RTX 5090 (Nodes 065-096)| TIER 4: Blackwell B200 (Nodes 097-128)          |
-| Nodes 065 - 080 (Row 5)         | Nodes 097 - 112 (Row 7)                         |
-| Nodes 081 - 096 (Row 6)         | Nodes 113 - 128 (Row 8)                         |
-+---------------------------------+-------------------------------------------------+
+```mermaid
+pie title "Cluster Distribution (128 Total Nodes)"
+    "Tier 1 (RTX 3090)" : 32
+    "Tier 2 (RTX 4090)" : 32
+    "Tier 3 (RTX 5090)" : 32
+    "Tier 4 (Blackwell B200)" : 32
 ```
 
----
+## Tier Definitions
+The tier constraints are codified in [`backend/simulator/workload_engine.py`](file:///d:/Ai-Cluster/backend/simulator/workload_engine.py). When the `SchedulerEngine` assigns a workload, it attempts to assign it to the cheapest tier that satisfies the workload's constraints.
 
-## 3. Hardware Specification Matrix by Tier
+| Tier Level | Name | RAM | VRAM | Base Power Draw | Operating Temp | Use Case |
+|---|---|---|---|---|---|---|
+| **Tier 1** | RTX 3090 Build | 16GB DDR5 | 24GB GDDR6X | 350W | 65°C | Lightweight tasks, text NLP |
+| **Tier 2** | RTX 4090 Build | 32GB DDR5 | 24GB GDDR6X | 450W | 60°C | Image generation, mid-tier processing |
+| **Tier 3** | RTX 5090 Build | 64GB DDR5 | 32GB GDDR7 | 600W | 58°C | Heavy 3D rendering, video synthesis |
+| **Tier 4** | Blackwell B200 | 128GB LPDDR5 | 192GB HBM3 | 700W | 55°C | LLM Pre-training, intensive batches |
 
-The hardware profiles are hardcoded in the workload engine ([backend/simulator/workload_engine.py](file:///d:/Ai-Cluster/backend/simulator/workload_engine.py)) and telemetry generator ([backend/telemetry_generator.py](file:///d:/Ai-Cluster/backend/telemetry_generator.py)):
+## Node State Machine
+Each node in the 128-node array continuously transitions through states based on the workload demands and the control plane interventions.
 
-| Attribute | Tier 1 (Nodes 1-32) | Tier 2 (Nodes 33-64) | Tier 3 (Nodes 65-96) | Tier 4 (Nodes 97-128) |
-|:---|:---|:---|:---|:---|
-| **GPU Architecture** | NVIDIA RTX 3090 | NVIDIA RTX 4090 | NVIDIA RTX 5090 | Blackwell B200 |
-| **System RAM** | 16 GB DDR5 | 32 GB DDR5 | 64 GB DDR5 | 128 GB LPDDR5 |
-| **VRAM Capacity** | 24,576 MB (24GB GDDR6X) | 24,576 MB (24GB GDDR6X) | 32,768 MB (32GB GDDR7) | 196,608 MB (192GB HBM3) |
-| **Base Power Draw** | 330W – 350W | 420W – 450W | 560W – 600W | 660W – 700W |
-| **Target Temperature** | 63.0°C – 67.0°C | 58.0°C – 62.0°C | 56.0°C – 60.0°C | 53.0°C – 57.0°C |
-| **Active Utilization** | 75% – 90% | 80% – 95% | 85% – 98% | 90% – 100% |
-| **Color Identifiers** | `#a3be8c` (Green) | `#ebcb8b` (Yellow) | `#d08770` (Orange) | `#bf616a` (Red) |
+```mermaid
+stateDiagram-v2
+    [*] --> IDLE : Node Boots Up
+    IDLE --> PROCESSING : Workload Assigned
+    PROCESSING --> OVERHEATED : Temp > 85C
+    OVERHEATED --> OFFLINE : Thermal Shutdown
+    OFFLINE --> IDLE : Cooldown & Reboot
+    PROCESSING --> IDLE : Workload Completed
+    PROCESSING --> PROCESSING : Consolidated (Merging Jobs)
+```
 
----
-
-## 4. Node Indexing & Naming Rules
-
-* **String Format**: `Node-001`, `Node-002`, ..., `Node-128`.
-* **Zero-Padding**: All node IDs are padded to 3 digits using string formatting `Node-{i:03d}`.
-* **Tier Mapping Formula**:
-  $$\text{Tier}(i) = \lfloor \frac{i - 1}{32} \rfloor + 1 \quad \text{where } i \in [1, 128]$$
-
----
-
-## 5. Network Abstraction & Cluster Fabric
-
-Though simulated, the digital twin models high-bandwidth interconnects:
-* **Tier 1 & Tier 2**: 100 Gbps PCIe Gen4 NVLink fabric.
-* **Tier 3**: 400 Gbps PCIe Gen5 NVLink fabric.
-* **Tier 4**: 800 Gbps Quantum-2 InfiniBand + NVLink 5.0 (used for distributed LLM tensor parallelism).
+## Telemetry Mapping
+Instead of tracking 128 physical machines, the state of the cluster is generated mathematically by `backend/telemetry_generator.py`. 
+- Every 5 seconds, it emits a `dcgm_fi_dev_gpu_temp` and `dcgm_fi_prof_gr_engine_active` metric for all 128 nodes.
+- The base temperature is dictated by the Tier (e.g. Tier 4 runs cooler natively than Tier 1).
+- Workloads assigned by the `SchedulerEngine` act as multipliers, dynamically driving up the heat and power usage for specific nodes.
