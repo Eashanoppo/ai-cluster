@@ -16,4 +16,5 @@ urlpatterns = [
     path("runs/<int:pk>/acknowledge/", views.acknowledge_run, name="simulator-acknowledge"),
     path("inject_failure/", views.inject_failure, name="simulator-inject-failure"),
     path("scenario/", views.scenario_control, name="simulator-scenario"),
+    path("judge_mode/", views.judge_mode, name="simulator-judge-mode"),
 ]

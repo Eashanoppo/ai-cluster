@@ -1,1 +1,1 @@
-{"scenario": "gpu_failure", "timestamp": "2026-07-24T00:15:14.785293"}
+{"scenario": "thermal_runaway", "target_node": "Node-012", "timestamp": "2026-07-24T18:51:54.305830+00:00"}

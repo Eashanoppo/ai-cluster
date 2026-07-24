@@ -476,3 +476,241 @@ def scenario_control(request: Request):
         return Response({"status": "stopped"})
         
     return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ---------------------------------------------------------------------------
+# Judge Mode — scripted autonomous demo endpoint
+# ---------------------------------------------------------------------------
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def judge_mode(request: Request):
+    """
+    Trigger the full pre-scripted demo sequence.
+    """
+    import random
+    import time
+    from django.contrib.auth.models import User
+    from scheduler.models import WorkloadPlacement
+    from sentinel.models import Alert, Prediction
+    from costwatch.models import CostReport
+    from gate.models import ApprovalRequest
+
+    data = getattr(request, 'data', {})
+    scenario = data.get('scenario', 'thermal_runaway') if isinstance(data, dict) else 'thermal_runaway'
+
+    try:
+        admin_user = User.objects.filter(is_superuser=True).first()
+    except Exception:
+        admin_user = None
+
+    if scenario == 'traffic_spike':
+        run = SimulationRun.objects.create(
+            task_type="production_saas",
+            prompt="[JUDGE MODE] Production SaaS experiencing massive Black Friday traffic spike (10x load)",
+            allocated_nodes=12,
+            file_input_size_gb=10.0,
+            image_count=0,
+            thinking_depth=4,
+            complexity_factor=2.0,
+            required_nodes=24,
+            status="analyzing",
+            company_name="ClustroConnect Demo Corp",
+            priority="Critical",
+            selected_tier=1,
+        )
+
+        timeline = [
+            {"step": 1, "delay_ms": 0,    "event": "traffic_surge",     "label": "Massive 10x traffic spike detected on ingress", "icon": "activity"},
+            {"step": 2, "delay_ms": 2000, "event": "ai_analyzing",      "label": "AI predicting capacity exhaustion in 45s...", "icon": "cpu"},
+            {"step": 3, "delay_ms": 4500, "event": "auto_scale",        "label": "Autonomous Auto-Scale triggered: +12 Nodes", "icon": "layers"},
+            {"step": 4, "delay_ms": 7000, "event": "load_balance",      "label": "Rebalancing traffic across expanded cluster...", "icon": "check"},
+            {"step": 5, "delay_ms": 10000,"event": "stabilized",        "label": "Cluster stabilized. Zero dropped requests.", "icon": "shield"}
+        ]
+
+        Alert.objects.create(node_id="Ingress", severity="HIGH", message="[JUDGE MODE] 10x Traffic Spike Detected. Auto-scaling initiated.")
+        WorkloadPlacement.objects.create(
+            job_id=f"JM-SCALE-{run.id}",
+            source_node="auto-scaler",
+            target_node="Cluster-Wide",
+            reason="[JUDGE MODE] Autonomous scaling applied (+12 nodes) to handle Black Friday load.",
+            status="COMPLETED",
+        )
+
+        return Response({
+            "status": "judge_mode_initiated",
+            "run_id": run.id,
+            "timeline": timeline,
+            "scenario": scenario
+        })
+
+    elif scenario == 'network_partition':
+        run = SimulationRun.objects.create(
+            task_type="large_ml_project",
+            prompt="[JUDGE MODE] Distributed training cluster partition fault",
+            allocated_nodes=32,
+            file_input_size_gb=50.0,
+            image_count=0,
+            thinking_depth=5,
+            complexity_factor=3.0,
+            required_nodes=32,
+            status="analyzing",
+            company_name="ClustroConnect Demo Corp",
+            priority="Critical",
+            selected_tier=1,
+        )
+
+        timeline = [
+            {"step": 1, "delay_ms": 0,    "event": "fault_detected",    "label": "Network Partition: Spine Switch B unreachable", "icon": "alert"},
+            {"step": 2, "delay_ms": 2500, "event": "ai_analyzing",      "label": "AI detecting isolated nodes (16 GPUs offline)", "icon": "cpu"},
+            {"step": 3, "delay_ms": 5000, "event": "reroute",           "label": "Rerouting gradient sync via Spine Switch A...", "icon": "arrow"},
+            {"step": 4, "delay_ms": 7500, "event": "checkpoint",        "label": "Loading last checkpoint to prevent data loss", "icon": "layers"},
+            {"step": 5, "delay_ms": 10500,"event": "resumed",           "label": "Training resumed at degraded capacity (16 GPUs).", "icon": "shield"}
+        ]
+
+        Alert.objects.create(node_id="Spine-B", severity="CRITICAL", message="[JUDGE MODE] Network Partition. 16 nodes isolated.")
+        WorkloadPlacement.objects.create(
+            job_id=f"JM-ROUTE-{run.id}",
+            source_node="Spine-B",
+            target_node="Spine-A",
+            reason="[JUDGE MODE] Autonomous network reroute to bypass isolated spine switch.",
+            status="COMPLETED",
+        )
+
+        return Response({
+            "status": "judge_mode_initiated",
+            "run_id": run.id,
+            "timeline": timeline,
+            "scenario": scenario
+        })
+
+    else:
+        # --- Default: Thermal Runaway Scenario ---
+        run = SimulationRun.objects.create(
+            task_type="llm_inference",
+            prompt="[JUDGE MODE] GPT-4 scale LLM inference — distributed across GPU cluster",
+            allocated_nodes=8,
+            file_input_size_gb=2.5,
+            image_count=0,
+            thinking_depth=5,
+            complexity_factor=0.9,
+            required_nodes=8,
+            status="analyzing",
+            company_name="ClustroConnect Demo Corp",
+            priority="Critical",
+            selected_tier=1,
+        )
+
+        selected_node = "Node-087"
+        selected_node_name = "Titan"
+        thermal_node = "Node-012"
+        thermal_node_name = "Atlas"
+
+        scheduling_reasons = {
+            "selected_node": selected_node,
+            "selected_node_name": selected_node_name,
+            "reasons": [
+                {"icon": "check", "text": "Lowest queue depth (0 jobs)", "weight": 0.35},
+                {"icon": "check", "text": "Lowest thermal risk (42°C baseline)", "weight": 0.23},
+                {"icon": "check", "text": "Sufficient VRAM available (18.4 GB free)", "weight": 0.31},
+                {"icon": "check", "text": "Estimated completion 31% faster than alternatives", "weight": 0.11},
+            ],
+            "confidence_breakdown": {
+                "scheduling_confidence": 98,
+                "thermal_prediction": 94,
+                "resource_availability": 97,
+                "historical_accuracy": 95,
+                "final_confidence": 96,
+            },
+            "cost_delta": {
+                "baseline_monthly_usd": 7200,
+                "optimized_monthly_usd": 5860,
+                "savings_pct": 19,
+                "gpu_hours_saved": 18.4,
+                "downtime_prevented_sec": 12,
+                "carbon_saved_kg": 18,
+            }
+        }
+
+        run.status = "processing"
+        run.save()
+
+        WorkloadPlacement.objects.create(
+            job_id=f"JM-{run.id}",
+            source_node="queue",
+            target_node=selected_node,
+            reason=f"[JUDGE MODE] AI selected {selected_node_name} ({selected_node}): optimal thermal + VRAM profile",
+            status="COMPLETED",
+        )
+
+        state_file = os.path.join(settings.BASE_DIR, 'disaster_state.json')
+        try:
+            with open(state_file, 'w') as f:
+                json.dump({
+                    'scenario': 'thermal_runaway',
+                    'target_node': thermal_node,
+                    'timestamp': datetime.now(timezone.utc).isoformat()
+                }, f)
+        except Exception:
+            pass
+
+        Prediction.objects.create(
+            node_id=thermal_node,
+            failure_probability=0.91,
+            reason=f"[JUDGE MODE] IsolationForest anomaly detected: rapid thermal escalation on {thermal_node_name} ({thermal_node}). Temperature trajectory: 68°C→83°C→91°C in 90s. Pattern matches historical GPU thermal runaway event (2024-11-14). Failure imminent.",
+        )
+
+        Alert.objects.create(
+            node_id=thermal_node,
+            severity="CRITICAL",
+            message=f"[JUDGE MODE] INCIDENT-{random.randint(200, 299)}: Thermal runaway on {thermal_node_name} ({thermal_node}). Failure probability 91%. Auto-migration initiated.",
+        )
+
+        migration_target = "Node-034"
+        migration_target_name = "Orion"
+        WorkloadPlacement.objects.create(
+            job_id=f"MIG-JM-{int(time.time())}",
+            source_node=thermal_node,
+            target_node=migration_target,
+            reason=f"[JUDGE MODE] AUTONOMOUS MIGRATION: {thermal_node_name}→{migration_target_name}. Thermal breach 91°C. Zero downtime. Learning engine updated.",
+            status="COMPLETED",
+        )
+
+        ApprovalRequest.objects.create(
+            action_type="LIVE MIGRATION",
+            target_resource=thermal_node,
+            reason=f"[JUDGE MODE] Thermal anomaly on {thermal_node_name}. AI autonomously migrated workload to {migration_target_name}. Downtime: 0ms.",
+            status="APPROVED",
+            approved_by=admin_user,
+        )
+
+        CostReport.objects.create(
+            node_id=thermal_node,
+            idle_time_hours=0.2,
+            wasted_cost_usd=0.003,
+        )
+
+        timeline = [
+            {"step": 1, "delay_ms": 0,    "event": "job_submitted",     "label": "AI Training Job submitted to queue",              "icon": "upload"},
+            {"step": 2, "delay_ms": 1500, "event": "ai_analyzing",      "label": "Scanning 128 GPUs...",                             "icon": "cpu"},
+            {"step": 3, "delay_ms": 4000, "event": "ai_decided",        "label": f"GPU Selected: {selected_node_name} ({selected_node})", "icon": "check", "data": scheduling_reasons},
+            {"step": 4, "delay_ms": 6000, "event": "twin_updated",      "label": "Digital Twin updated — workload assigned",          "icon": "layers"},
+            {"step": 5, "delay_ms": 8000, "event": "thermal_spike",     "label": f"⚠ Thermal anomaly: {thermal_node_name} ({thermal_node}) — 91°C", "icon": "flame"},
+            {"step": 6, "delay_ms": 11000,"event": "prediction",        "label": "Failure Probability: 91% — Migration recommended",  "icon": "alert"},
+            {"step": 7, "delay_ms": 14000,"event": "migration_start",   "label": "Autonomous migration initiated — countdown 3...2...1", "icon": "arrow"},
+            {"step": 8, "delay_ms": 17500,"event": "migration_complete","label": f"Migration complete: {thermal_node_name}→{migration_target_name}. Cluster stable.", "icon": "shield", "data": scheduling_reasons["cost_delta"]},
+        ]
+
+        return Response({
+            "status": "judge_mode_initiated",
+            "run_id": run.id,
+            "timeline": timeline,
+            "scenario": scenario,
+            "scheduling_reasons": scheduling_reasons,
+            "selected_node": selected_node,
+            "selected_node_name": selected_node_name,
+            "thermal_node": thermal_node,
+            "thermal_node_name": thermal_node_name,
+            "migration_target": migration_target,
+            "migration_target_name": migration_target_name,
+        })

@@ -28,12 +28,12 @@ interface NavItem {
 }
 
 const mainNavItems: NavItem[] = [
-  { icon: <LayoutDashboard size={18} />, label: "Dashboard", href: "/" },
-  { icon: <Activity size={18} />, label: "Simulator", href: "/simulator" },
-  { icon: <Activity size={18} />, label: "Failure Alerts", href: "/sentinel" },
+  { icon: <LayoutDashboard size={18} />, label: "Mission Control", href: "/" },
+  { icon: <Cpu size={18} />, label: "Cluster Twin Engine", href: "/simulator" },
+  { icon: <Activity size={18} />, label: "Failure Intelligence", href: "/sentinel" },
   { icon: <ArrowRightLeft size={18} />, label: "Job Reallocations", href: "/scheduler" },
-  { icon: <DollarSign size={18} />, label: "Savings Manager", href: "/costwatch" },
-  { icon: <Lock size={18} />, label: "Task Approvals", href: "/gate" },
+  { icon: <DollarSign size={18} />, label: "Cost Intelligence", href: "/costwatch" },
+  { icon: <Lock size={18} />, label: "Action Approvals", href: "/gate" },
 ];
 
 interface SidebarProps {
@@ -57,7 +57,7 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           <img src="/OnlyLogoNoBG.png" alt="ClustroConnect Logo" className="w-8 h-8 object-contain" />
           {!isCollapsed && (
             <span className="font-sans font-bold text-sm tracking-tight text-white truncate">
-              ClustroConnect
+              NeuronOps
             </span>
           )}
         </div>

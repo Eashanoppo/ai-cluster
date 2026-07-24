@@ -7,20 +7,24 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
     // Server-side: dynamic import next/headers to prevent bundler errors on client components
     const { cookies } = await import('next/headers')
     const cookieStore = await cookies()
-    token = cookieStore.get('jwt')?.value
+    const tokenValue = cookieStore.get('jwt')?.value
+    token = tokenValue ? tokenValue.trim() : undefined
   } else {
     // Client-side: read directly from document.cookie
     const match = document.cookie.match(/(^| )jwt=([^;]+)/)
-    token = match ? decodeURIComponent(match[2]) : undefined
+    token = match ? decodeURIComponent(match[2]).trim() : undefined
   }
 
   if (!token) {
+    console.error(`[fetchWithAuth] No token found for ${endpoint}`);
     throw new Error('Unauthorized')
   }
 
   const headers = new Headers(options.headers)
   headers.set('Authorization', `Bearer ${token}`)
   headers.set('Content-Type', 'application/json')
+  
+  console.log(`[fetchWithAuth] Req ${endpoint} | Token: "${token}"`);
 
   const res = await fetch(`${API_URL}${endpoint}`, {
     ...options,
@@ -30,8 +34,11 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
 
   if (!res.ok) {
     if (res.status === 401) {
+      console.error(`[fetchWithAuth] 401 Unauthorized from Django for ${endpoint}`);
       throw new Error('Unauthorized')
     }
+    const text = await res.text();
+    console.error(`[fetchWithAuth] API error ${res.status} for ${endpoint}: ${text}`);
     throw new Error(`API error: ${res.status}`)
   }
 
@@ -165,4 +172,11 @@ export async function setSimulatorScenario(data: any): Promise<any> {
 
 export async function getSimulatorScenario(): Promise<any> {
   return fetchWithAuth('/simulator/scenario/')
+}
+
+export async function triggerJudgeMode(): Promise<any> {
+  return fetchWithAuth('/simulator/judge_mode/', {
+    method: 'POST',
+    body: JSON.stringify({}),
+  })
 }

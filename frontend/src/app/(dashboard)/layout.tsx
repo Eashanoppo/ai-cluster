@@ -40,10 +40,10 @@ export default function DashboardLayout({
           {/* Main Top Header */}
           <header className="h-16 border-b border-border bg-background flex items-center justify-between px-6 z-25 flex-shrink-0">
             <div className="flex items-center gap-3">
-              <span className="text-lg font-bold text-white tracking-tight">ClustroConnect</span>
+              <span className="text-lg font-bold text-white tracking-tight">NeuronOps</span>
               <div className="hidden sm:flex px-2 py-0.5 border border-primary/20 bg-primary/10 text-primary rounded-full font-mono text-[9px] font-bold items-center gap-1 uppercase">
                 <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
-                Active
+                Cluster Twin · Live
               </div>
             </div>
 
@@ -107,20 +107,7 @@ export default function DashboardLayout({
           </div>
         </motion.div>
  
-        {/* Floating action button launcher */}
-        {!isCopilotOpen && (
-          <motion.button
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setIsCopilotOpen(true)}
-            className="fixed bottom-6 right-6 z-35 flex items-center gap-2 px-4 py-3 bg-primary text-black rounded-xl shadow-lg border border-primary/50 hover:shadow-xl hover:border-primary transition-all cursor-pointer font-sans text-sm font-semibold glow-cta outline-none glow-focus"
-          >
-            <Sparkles className="w-4.5 h-4.5 text-black" />
-            <span>Ask Assistant</span>
-          </motion.button>
-        )}
+
 
       </div>
     </LayoutGroup>
