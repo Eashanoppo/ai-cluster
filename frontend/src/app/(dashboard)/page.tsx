@@ -10,7 +10,10 @@ import { JudgeMode } from '../components/ui/JudgeMode';
 import { ClusterAdvisor } from '../components/ui/ClusterAdvisor';
 import { SentinelChart } from '../components/ui/Chart';
 import ComparisonModal from '../components/ui/ComparisonModal';
+import TierFitPanel from '../components/ui/TierFitPanel';
+import WorkloadBurstControl from '../components/ui/WorkloadBurstControl';
 import { pollPredictions, pollApprovals, pollLearningUpdates } from '../actions/simulator';
+
 
 // ─────────────────────────────────────────────────────────────
 // NOTE: This page is a 'use client' component so all data
@@ -86,6 +89,18 @@ export default function MissionControl() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <AIDecisionCenter />
         <TelemetryLog />
+      </div>
+
+      {/* ── TIER FIT: Workload Burst + Placement Proof ── */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
+        {/* Workload burst launcher — narrower column */}
+        <div className="xl:col-span-4">
+          <WorkloadBurstControl />
+        </div>
+        {/* Tier Fit Placement Proof — wider panel */}
+        <div className="xl:col-span-8">
+          <TierFitPanel />
+        </div>
       </div>
 
     </div>

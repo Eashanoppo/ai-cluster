@@ -112,3 +112,66 @@ class SimulationRun(models.Model):
 
     def __str__(self):
         return f"SimRun #{self.pk} — {self.task_type} (Actual Nodes: {self.allocated_nodes_actual}) [{self.status}]"
+
+
+class TierFitResult(models.Model):
+    """
+    Records the Tier Fit placement decision for each job dispatched by Ray.
+    Stores cost comparison vs naive 'First Free' scheduler and a human-readable reason line.
+    Used by the Placement Proof dashboard panel (hackathon challenge deliverable).
+    """
+    TRAFFIC_MODE_CHOICES = [
+        ('peak', 'Peak Hours'),
+        ('off_peak', 'Off-Peak'),
+        ('manual', 'Manual'),
+    ]
+
+    run = models.ForeignKey(
+        SimulationRun,
+        on_delete=models.CASCADE,
+        related_name='tier_fit_results',
+        null=True, blank=True
+    )
+    task_type = models.CharField(max_length=64)
+    selected_tier = models.IntegerField()
+    tier_name = models.CharField(max_length=100)
+
+    # Tier Fit Score: 0-100 (100 = perfect cheapest-viable match)
+    tier_fit_score = models.FloatField(default=0.0)
+
+    # Human-readable reason line (one sentence)
+    reason_line = models.TextField(blank=True)
+
+    # Cost of our CustroConnect placement
+    cost_per_hour_usd = models.FloatField(default=0.0)
+
+    # What a naive "first free" scheduler would have chosen
+    first_free_tier = models.IntegerField(default=1)
+    first_free_cost_usd = models.FloatField(default=0.0)
+    cost_saving_usd = models.FloatField(default=0.0)
+
+    # Wait times (simulated, in seconds)
+    wait_time_seconds = models.FloatField(default=0.0)
+    first_free_wait_seconds = models.FloatField(default=0.0)
+
+    # Was Tier 4 (Blackwell B200) kept free for heavy jobs?
+    top_tier_preserved = models.BooleanField(default=False)
+
+    # Traffic mode when this job was generated
+    traffic_mode = models.CharField(
+        max_length=16,
+        choices=TRAFFIC_MODE_CHOICES,
+        default='manual'
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['run', '-created_at']),
+            models.Index(fields=['task_type', '-created_at']),
+        ]
+
+    def __str__(self):
+        return f"TierFit #{self.pk} — {self.task_type} → Tier {self.selected_tier} (score={self.tier_fit_score:.0f}) saved ${self.cost_saving_usd:.2f}"

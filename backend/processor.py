@@ -37,15 +37,28 @@ KWH_COST_USD = 0.15
 LEARNING_FILE = Path(__file__).parent / "learning_engine_experience.jsonl"
 
 class LearningEngine:
-    """ Phase 25: Learning Engine """
+    """
+    Phase 25: Learning Engine — Enhanced with Tier Fit simulation awareness.
+
+    Learns from each simulation's TierFitResult outcomes to:
+    - Adjust thermal thresholds per tier
+    - Detect rising temperature trends BEFORE a breach occurs
+    - Pre-emptively migrate workloads to prevent failure
+    """
     def __init__(self):
         self.knowledge_base = {
             "thermal_threshold": 90.0,
             "cost_threshold": 0.05,
-            "migration_success_rate": 0.95
+            "migration_success_rate": 0.95,
+            # Per-tier learned thermal thresholds
+            "tier_thresholds": {1: 90.0, 2: 88.0, 3: 86.0, 4: 82.0},
         }
+        # Rolling temperature history per node (last 10 samples) for trend detection
+        self._temp_history: dict[str, list[float]] = {}
+        # Track nodes for which we've already issued a pre-emptive alert
+        self._pre_migrated: set[str] = set()
         self.load_experiences()
-    
+
     def log_experience(self, action, target, reason, outcome="SUCCESS", confidence=1.0):
         try:
             update_id = f"LE-2026-{random.randint(100, 999)}"
@@ -63,16 +76,82 @@ class LearningEngine:
         except Exception:
             pass
 
+    def learn_from_tier_fit(self):
+        """
+        Read recent TierFitResult records and adjust per-tier thermal thresholds.
+        If a tier consistently produces high-scoring placements, we can relax its threshold.
+        If a tier sees failed jobs, tighten the threshold.
+        """
+        try:
+            from simulator.models import TierFitResult
+            from django.utils import timezone
+            cutoff = timezone.now() - timezone.timedelta(hours=1)
+            for tier in range(1, 5):
+                results = TierFitResult.objects.filter(
+                    selected_tier=tier,
+                    created_at__gte=cutoff,
+                ).values_list('tier_fit_score', flat=True)
+                scores = list(results)
+                if len(scores) < 5:
+                    continue
+                avg_score = sum(scores) / len(scores)
+                # High avg score → tier is being used efficiently → can tolerate slightly higher temp
+                # Low avg score → over-provisioning detected → tighten threshold to force redistribution
+                current = self.knowledge_base["tier_thresholds"].get(tier, 88.0)
+                if avg_score > 85:
+                    self.knowledge_base["tier_thresholds"][tier] = min(92.0, current + 0.2)
+                elif avg_score < 50:
+                    self.knowledge_base["tier_thresholds"][tier] = max(78.0, current - 0.5)
+                print(
+                    f"[LEARNING ENGINE] Tier {tier} avg Tier Fit Score={avg_score:.0f} → "
+                    f"thermal threshold adjusted to {self.knowledge_base['tier_thresholds'][tier]:.1f}°C"
+                )
+        except Exception:
+            pass
+
+    def record_temp(self, node_id: str, temp: float):
+        """Push latest temperature into per-node rolling history (max 10 samples)."""
+        history = self._temp_history.setdefault(node_id, [])
+        history.append(temp)
+        if len(history) > 10:
+            history.pop(0)
+
+    def is_trending_hot(self, node_id: str, tier: int) -> bool:
+        """
+        Return True if this node's temperature is trending upward and is projected
+        to breach the learned tier threshold within the next 2 samples.
+        This allows a PRE-EMPTIVE migration BEFORE actual failure.
+        """
+        history = self._temp_history.get(node_id, [])
+        if len(history) < 4:
+            return False
+        # Simple linear trend: compare avg of last 2 vs avg of previous 2
+        recent_avg = sum(history[-2:]) / 2
+        prior_avg = sum(history[-4:-2]) / 2
+        rising_rate = recent_avg - prior_avg  # degrees per sample interval
+        threshold = self.knowledge_base["tier_thresholds"].get(tier, 90.0)
+        projected_next = recent_avg + (rising_rate * 2)
+        return projected_next >= (threshold * 0.92)  # 92% of threshold = act early
+
     def load_experiences(self):
         if not LEARNING_FILE.exists():
             return
-        # A simple offline retraining simulation that dynamically alters internal parameters
         try:
             with open(LEARNING_FILE, "r") as f:
                 lines = f.readlines()
                 if len(lines) > 100:
                     print("[LEARNING ENGINE] Analyzing historical experiences and adjusting policy weights.")
-                    self.knowledge_base["thermal_threshold"] = 88.5 # Simulated optimization
+                    # Count migration successes vs failures to calibrate threshold
+                    successes = sum(1 for l in lines if '"outcome": "SUCCESS"' in l)
+                    total = len(lines)
+                    success_rate = successes / total if total > 0 else 0.95
+                    # If success rate is high, we can be more aggressive (lower threshold slightly)
+                    if success_rate > 0.90:
+                        self.knowledge_base["thermal_threshold"] = 88.0
+                        print(f"[LEARNING ENGINE] High success rate ({success_rate:.0%}). Threshold tightened to 88°C.")
+                    else:
+                        self.knowledge_base["thermal_threshold"] = 91.0
+                        print(f"[LEARNING ENGINE] Lower success rate ({success_rate:.0%}). Threshold relaxed to 91°C.")
         except Exception:
             pass
 
@@ -277,8 +356,15 @@ class SchedulerEngine:
         except User.DoesNotExist:
             admin_user = None
 
+        tick_count = 0  # Used to space out learning updates
+
         while True:
-            # 1. Collect Telemetry via Prometheus
+            tick_count += 1
+
+            # 0. Periodically learn from Tier Fit simulation outcomes (every 10 ticks)
+            if tick_count % 10 == 0:
+                self.learning_engine.learn_from_tier_fit()
+
             temps = PrometheusSim.query("dcgm_fi_dev_gpu_temp")
             utils = PrometheusSim.query("dcgm_fi_dev_gpu_util")
             powers = PrometheusSim.query("dcgm_fi_dev_power_usage")
@@ -301,25 +387,65 @@ class SchedulerEngine:
             for node_id, temp in temp_map.items():
                 util = util_map.get(node_id, 0)
                 power = power_map.get(node_id, 0)
-                
+
+                # Feed temp into learning engine for trend analysis
+                self.learning_engine.record_temp(node_id, temp)
+
                 base_prob = max(0.01, min(0.95, (temp - 40) / 60.0))
                 prob = max(base_prob, anomaly_scores.get(node_id, 0.01))
-                
+
                 if prob > max_prob:
                     max_prob = prob
                     max_prob_node = node_id
-                
-                # Use Learning Engine dynamic threshold
+
+                # Use Learning Engine dynamic threshold (global + per-tier)
                 thermal_threshold = self.learning_engine.knowledge_base.get("thermal_threshold", 90.0)
-                
-                if temp >= thermal_threshold or prob > 0.90:
+
+                # Determine node tier from index (Node-000..031 = Tier1, etc.)
+                try:
+                    node_idx = int(node_id.split('-')[1])
+                    node_tier = (node_idx // 32) + 1
+                except Exception:
+                    node_tier = 1
+                tier_threshold = self.learning_engine.knowledge_base["tier_thresholds"].get(node_tier, thermal_threshold)
+
+                # ── PRE-EMPTIVE migration: act BEFORE thermal breach ──────
+                if self.learning_engine.is_trending_hot(node_id, node_tier):
+                    pre_recent = ApprovalRequest.objects.filter(
+                        target_resource=node_id,
+                        action_type="PREDICTIVE MIGRATION",
+                        requested_at__gte=timezone.now() - timedelta(minutes=2)
+                    ).exists()
+                    if not pre_recent and node_id not in self.learning_engine._pre_migrated:
+                        reason = (
+                            f"[PREDICTIVE] Tier {node_tier} node {node_id} temp trending hot "
+                            f"({temp:.1f}°C). Pre-emptive migration triggered before breach at "
+                            f"{tier_threshold:.1f}°C."
+                        )
+                        print(f"[LEARNING ENGINE] [PREDICTIVE] {reason}")
+                        ApprovalRequest.objects.create(
+                            action_type="PREDICTIVE MIGRATION",
+                            target_resource=node_id,
+                            reason=reason,
+                            status="APPROVED",
+                            approved_by=admin_user,
+                        )
+                        self.learning_engine.log_experience(
+                            "PREDICTIVE MIGRATION", node_id, reason,
+                            outcome="PRE_EMPTIVE", confidence=0.88
+                        )
+                        self.learning_engine._pre_migrated.add(node_id)
+                elif temp < tier_threshold * 0.85:
+                    # Node cooled down — remove from pre-migrated set
+                    self.learning_engine._pre_migrated.discard(node_id)
+
+                if temp >= tier_threshold or prob > 0.90:
                     hot_nodes.append((node_id, temp))
                     if not Alert.objects.filter(node_id=node_id, resolved=False).exists():
                         new_alerts.append(Alert(node_id=node_id, severity="CRITICAL", message=f"ML Predicted Anomaly (Score: {prob*100:.0f}%)"))
                 elif temp < 85 and prob < 0.70:
                     Alert.objects.filter(node_id=node_id, resolved=False).update(resolved=True)
 
-                # 3. Cost Engine (Phase 23)
                 if util < 5:
                     idle_nodes.append(node_id)
                     wasted_cost = (power / 1000) * KWH_COST_USD

@@ -738,3 +738,198 @@ def judge_mode(request: Request):
             "migration_target": migration_target,
             "migration_target_name": migration_target_name,
         })
+
+
+# ─── Tier Fit & Placement Proof API ──────────────────────────────────────────
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def tier_fit_results(request: Request):
+    """
+    GET /api/simulator/tier_fit/
+
+    Returns Tier Fit placement proof data for the dashboard.
+    Optional query params:
+      - run_id: filter to a specific SimulationRun
+      - mode: 'peak' | 'off_peak' | 'manual'
+      - limit: max recent placements to return (default 30)
+
+    Response structure:
+      {
+        "summary": { total_jobs, clustroconnect_cost, first_free_cost, savings_pct, ... },
+        "by_tier": [ { tier, tier_name, jobs, avg_score, our_cost, first_free_cost }, ... ],
+        "recent_placements": [ { task_type, selected_tier, tier_name, score, reason_line, ... } ],
+        "simulation_history": [ { id, task_type, created_at, job_count } ]
+      }
+    """
+    from .models import TierFitResult, SimulationRun
+    from django.db.models import Avg, Sum, Count
+    from django.utils import timezone
+
+    run_id = request.query_params.get('run_id')
+    traffic_mode = request.query_params.get('mode')
+    limit = int(request.query_params.get('limit', 30))
+
+    qs = TierFitResult.objects.all()
+    if run_id:
+        qs = qs.filter(run_id=run_id)
+    if traffic_mode:
+        qs = qs.filter(traffic_mode=traffic_mode)
+
+    # ── Summary stats ──────────────────────────────────────────────────────
+    totals = qs.aggregate(
+        total_jobs=Count('id'),
+        our_total_cost=Sum('cost_per_hour_usd'),
+        naive_total_cost=Sum('first_free_cost_usd'),
+        total_saving=Sum('cost_saving_usd'),
+        avg_wait=Avg('wait_time_seconds'),
+        naive_avg_wait=Avg('first_free_wait_seconds'),
+        avg_score=Avg('tier_fit_score'),
+    )
+
+    our_cost = totals['our_total_cost'] or 0.0
+    naive_cost = totals['naive_total_cost'] or 0.0
+    savings_pct = round(((naive_cost - our_cost) / naive_cost * 100), 1) if naive_cost > 0 else 0.0
+    top_tier_preserved = qs.filter(top_tier_preserved=True).exists()
+
+    summary = {
+        "total_jobs": totals['total_jobs'] or 0,
+        "clustroconnect_cost_usd": round(our_cost, 2),
+        "first_free_cost_usd": round(naive_cost, 2),
+        "total_saving_usd": round(totals['total_saving'] or 0.0, 2),
+        "savings_pct": savings_pct,
+        "avg_wait_clustroconnect": round(totals['avg_wait'] or 0.0, 2),
+        "avg_wait_first_free": round(totals['naive_avg_wait'] or 0.0, 2),
+        "avg_tier_fit_score": round(totals['avg_score'] or 0.0, 1),
+        "top_tier_preserved": top_tier_preserved,
+    }
+
+    # ── Per-tier breakdown ─────────────────────────────────────────────────
+    from .workload_engine import TIERS, TIER_COSTS
+    by_tier = []
+    for tier in range(1, 5):
+        tier_qs = qs.filter(selected_tier=tier)
+        tier_totals = tier_qs.aggregate(
+            jobs=Count('id'),
+            avg_score=Avg('tier_fit_score'),
+            our_cost=Sum('cost_per_hour_usd'),
+            naive_cost=Sum('first_free_cost_usd'),
+        )
+        if tier_totals['jobs']:
+            tier_info = TIERS.get(tier, {})
+            by_tier.append({
+                "tier": tier,
+                "tier_name": tier_info.get("name", f"Tier {tier}"),
+                "cost_per_node_hr": TIER_COSTS.get(tier, 0.0),
+                "jobs": tier_totals['jobs'],
+                "avg_score": round(tier_totals['avg_score'] or 0.0, 1),
+                "our_total_cost": round(tier_totals['our_cost'] or 0.0, 2),
+                "naive_total_cost": round(tier_totals['naive_cost'] or 0.0, 2),
+            })
+
+    # ── Recent placements ──────────────────────────────────────────────────
+    recent = qs.order_by('-created_at')[:limit]
+    placements = []
+    for r in recent:
+        placements.append({
+            "id": r.id,
+            "run_id": r.run_id,
+            "task_type": r.task_type,
+            "selected_tier": r.selected_tier,
+            "tier_name": r.tier_name,
+            "tier_fit_score": r.tier_fit_score,
+            "reason_line": r.reason_line,
+            "cost_per_hour_usd": r.cost_per_hour_usd,
+            "first_free_tier": r.first_free_tier,
+            "first_free_cost_usd": r.first_free_cost_usd,
+            "cost_saving_usd": r.cost_saving_usd,
+            "wait_time_seconds": r.wait_time_seconds,
+            "first_free_wait_seconds": r.first_free_wait_seconds,
+            "top_tier_preserved": r.top_tier_preserved,
+            "traffic_mode": r.traffic_mode,
+            "created_at": r.created_at.isoformat(),
+        })
+
+    # ── Simulation history (dropdown data) ────────────────────────────────
+    # Return recent SimulationRun IDs that have TierFitResult records
+    recent_runs_with_data = (
+        TierFitResult.objects
+        .values('run_id', 'run__task_type', 'run__created_at', 'traffic_mode')
+        .annotate(job_count=Count('id'))
+        .order_by('-run__created_at')[:50]
+    )
+    simulation_history = [
+        {
+            "run_id": r['run_id'],
+            "task_type": r['run__task_type'],
+            "created_at": r['run__created_at'].isoformat() if r['run__created_at'] else None,
+            "traffic_mode": r['traffic_mode'],
+            "job_count": r['job_count'],
+        }
+        for r in recent_runs_with_data
+        if r['run_id'] is not None
+    ]
+
+    return Response({
+        "summary": summary,
+        "by_tier": by_tier,
+        "recent_placements": placements,
+        "simulation_history": simulation_history,
+    })
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def workload_burst_trigger(request: Request):
+    """
+    POST /api/simulator/workload_burst/
+
+    Triggers a smart workload burst with editable task counts.
+
+    Body:
+    {
+      "mode": "peak" | "off_peak",
+      "video_generation": 100,
+      "image_generation": 250,
+      "code_edit": 500,
+      "batch_vision": 500,
+      "normal_chats": 2000,
+      "large_ml_project": 20,
+      "ocr_data_retrieval": 100,
+      "image_editing": 80,
+      "production_saas": 50
+    }
+    """
+    from .workload_burst import run_workload_burst, TRAFFIC_PRESETS
+
+    mode = request.data.get('mode', 'peak')
+    if mode not in ('peak', 'off_peak'):
+        mode = 'peak'
+
+    # Build override dict from any explicitly provided task counts
+    override_keys = [
+        'video_generation', 'image_generation', 'code_edit', 'batch_vision',
+        'normal_chats', 'large_ml_project', 'ocr_data_retrieval',
+        'image_editing', 'production_saas',
+    ]
+    override = {}
+    for key in override_keys:
+        if key in request.data:
+            try:
+                override[key] = max(0, int(request.data[key]))
+            except (ValueError, TypeError):
+                pass
+
+    try:
+        result = run_workload_burst(mode=mode, traffic_mode_override=override or None)
+        return Response({
+            "status": "burst_launched",
+            "mode": mode,
+            "total_jobs_queued": result['total_created'],
+            "by_type": result['by_type'],
+            "message": f"Successfully queued {result['total_created']} jobs in {mode.upper()} mode. Ray engine will process them shortly.",
+        })
+    except Exception as e:
+        logger.error(f"Workload burst error: {e}", exc_info=True)
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+

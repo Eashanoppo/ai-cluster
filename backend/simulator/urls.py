@@ -17,4 +17,8 @@ urlpatterns = [
     path("inject_failure/", views.inject_failure, name="simulator-inject-failure"),
     path("scenario/", views.scenario_control, name="simulator-scenario"),
     path("judge_mode/", views.judge_mode, name="simulator-judge-mode"),
+    # Tier Fit & Placement Proof (Hackathon Challenge Module)
+    path("tier_fit/", views.tier_fit_results, name="simulator-tier-fit"),
+    path("workload_burst/", views.workload_burst_trigger, name="simulator-workload-burst"),
 ]
+

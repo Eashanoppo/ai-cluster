@@ -285,3 +285,121 @@ def assess_allocation(
         requires_intervention=requires_intervention,
     )
 
+
+# ---------------------------------------------------------------------------
+# Tier Fit & Placement Proof — Hackathon Challenge Module
+# ---------------------------------------------------------------------------
+
+# Hourly cost per node per tier (USD).
+# Based on approximate spot-market GPU rental rates.
+TIER_COSTS: dict[int, float] = {
+    1: 0.90,   # RTX 3090 — consumer class
+    2: 2.50,   # RTX 4090 — prosumer
+    3: 5.00,   # RTX 5090 — workstation
+    4: 18.00,  # Blackwell B200 — enterprise HPC
+}
+
+# Simulated queue wait times per tier (seconds).
+# Lower tiers have more nodes available → shorter queue.
+TIER_WAIT_SECONDS: dict[int, float] = {
+    1: 0.5,
+    2: 1.2,
+    3: 3.0,
+    4: 8.0,
+}
+
+# Jobs that REQUIRE Tier 4 exclusively (others must not consume it)
+TIER4_EXCLUSIVE_TASKS = {"large_ml_project", "video_generation"}
+
+
+def compute_tier_fit_score(task_type: str, selected_tier: int) -> float:
+    """
+    Score how well a job was placed on the selected tier (0–100).
+
+    100 = perfect: cheapest tier that exactly meets the job's minimum need.
+    Penalises over-provisioning (cheap job on expensive GPU) and
+    under-provisioning (job forced below its minimum tier).
+    """
+    spec = TASK_SPECS.get(task_type)
+    if spec is None:
+        return 50.0
+
+    min_tier = spec["min_tier"]
+
+    # Under-provisioned: job on a tier below its minimum requirement
+    if selected_tier < min_tier:
+        return max(0.0, 20.0 - (min_tier - selected_tier) * 10)
+
+    # Perfect fit: placed on the exact minimum viable tier
+    if selected_tier == min_tier:
+        return 100.0
+
+    # Over-provisioned: job used a more expensive tier than necessary
+    # Lose 22 points per wasted tier level
+    waste = selected_tier - min_tier
+    score = max(0.0, 100.0 - waste * 22.0)
+    return round(score, 1)
+
+
+def get_first_free_tier(active_tiers: set[int]) -> int:
+    """
+    Simulate the naive 'First Free' scheduler:
+    Simply picks the lowest-indexed tier that is not currently overloaded,
+    without considering the job's actual hardware requirements.
+    This represents a traditional round-robin / bin-packing approach.
+    """
+    for tier in range(1, 5):
+        if tier not in active_tiers:
+            return tier
+    # All tiers busy — fall back to Tier 1
+    return 1
+
+
+def generate_reason_line(
+    task_type: str,
+    selected_tier: int,
+    first_free_tier: int,
+    score: float,
+    top_tier_preserved: bool,
+    nodes_allocated: int = 1,
+) -> str:
+    """
+    Generate a single human-readable sentence explaining the tier placement decision.
+    Designed for the Placement Proof dashboard panel.
+    """
+    spec = TASK_SPECS.get(task_type, {})
+    task_label = spec.get("label", task_type.replace("_", " ").title())
+    tier_info = TIERS.get(selected_tier, {})
+    tier_name = tier_info.get("name", f"Tier {selected_tier}")
+    vram = tier_info.get("vram", "N/A")
+    cost = TIER_COSTS.get(selected_tier, 0.0)
+    first_free_cost = TIER_COSTS.get(first_free_tier, 0.0)
+    saving = round(first_free_cost - cost, 2)
+
+    if task_type in TIER4_EXCLUSIVE_TASKS:
+        preserved_note = (
+            f"; Tier 4 was reserved and kept available for this job"
+            if top_tier_preserved
+            else ""
+        )
+        return (
+            f"{task_label} placed on {tier_name} — requires {vram} VRAM, "
+            f"only Tier 4 meets this need at ${cost:.2f}/hr per node{preserved_note}."
+        )
+
+    if selected_tier == spec.get("min_tier", 1):
+        saving_note = (
+            f", saving ${saving:.2f}/hr vs naive Tier {first_free_tier} placement"
+            if saving > 0
+            else ""
+        )
+        return (
+            f"{task_label} assigned to {tier_name} — minimum viable tier "
+            f"at ${cost:.2f}/hr per node (score {score:.0f}/100){saving_note}."
+        )
+
+    return (
+        f"{task_label} routed to {tier_name} at ${cost:.2f}/hr — "
+        f"Tier {spec.get('min_tier', 1)} was busy; next available tier selected "
+        f"(Tier Fit score {score:.0f}/100)."
+    )
