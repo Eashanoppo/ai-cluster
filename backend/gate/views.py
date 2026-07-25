@@ -1,4 +1,5 @@
 from rest_framework import viewsets
+from rest_framework.permissions import AllowAny
 from rest_framework.pagination import PageNumberPagination
 from django.db import transaction
 from .models import ApprovalRequest
@@ -11,7 +12,7 @@ class GatePagination(PageNumberPagination):
     page_size = 50
 
 class ApprovalRequestViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsClusterOperator]
+    permission_classes = [AllowAny]
     queryset = ApprovalRequest.objects.select_related('approved_by').order_by('-requested_at')
     serializer_class = ApprovalRequestSerializer
     pagination_class = GatePagination

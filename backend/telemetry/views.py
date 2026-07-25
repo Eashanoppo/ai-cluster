@@ -1,5 +1,5 @@
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils.decorators import method_decorator
@@ -8,7 +8,7 @@ from .models import GpuTelemetry
 from .serializers import GpuTelemetrySerializer
 
 class GpuTelemetryViewSet(viewsets.ReadOnlyModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     queryset = GpuTelemetry.objects.all()
     serializer_class = GpuTelemetrySerializer
 

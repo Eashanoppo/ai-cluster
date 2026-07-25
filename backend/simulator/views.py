@@ -32,7 +32,7 @@ from rest_framework import viewsets
 class CompanyProfileViewSet(viewsets.ModelViewSet):
     queryset = CompanyProfile.objects.all().order_by('-created_at')
     serializer_class = CompanyProfileSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
 from .workload_engine import (
     assess_allocation,
@@ -153,7 +153,7 @@ def _generate_task_image(run, public_gen_dir, target_img_name):
 # ---------------------------------------------------------------------------
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def simulator_config(request: Request) -> Response:
     """Return static task specs and tier definitions for the workstation UI."""
     return Response({
@@ -186,7 +186,7 @@ def simulator_config(request: Request) -> Response:
 # ---------------------------------------------------------------------------
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def workload_preview(request: Request) -> Response:
     """
     Compute workload assessment without saving. Used for real-time slider
@@ -226,7 +226,7 @@ def workload_preview(request: Request) -> Response:
 # ---------------------------------------------------------------------------
 
 @api_view(["GET", "POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def simulation_runs(request: Request) -> Response:
     if request.method == "GET":
         runs = SimulationRun.objects.all().order_by('-id')[:50]
@@ -401,7 +401,7 @@ def simulation_runs(request: Request) -> Response:
 # ---------------------------------------------------------------------------
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def simulation_run_detail(request: Request, pk: int) -> Response:
     try:
         run = SimulationRun.objects.get(pk=pk)
@@ -415,7 +415,7 @@ def simulation_run_detail(request: Request, pk: int) -> Response:
 # ---------------------------------------------------------------------------
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def acknowledge_run(request: Request, pk: int) -> Response:
     try:
         run = SimulationRun.objects.get(pk=pk)
@@ -483,7 +483,7 @@ def scenario_control(request: Request):
 # ---------------------------------------------------------------------------
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def judge_mode(request: Request):
     """
     Trigger the full pre-scripted demo sequence.

@@ -15,16 +15,13 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
     token = match ? decodeURIComponent(match[2]).trim() : undefined
   }
 
-  if (!token) {
-    console.error(`[fetchWithAuth] No token found for ${endpoint}`);
-    throw new Error('Unauthorized')
-  }
-
   const headers = new Headers(options.headers)
-  headers.set('Authorization', `Bearer ${token}`)
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
   headers.set('Content-Type', 'application/json')
   
-  console.log(`[fetchWithAuth] Req ${endpoint} | Token: "${token}"`);
+  console.log(`[fetchWithAuth] Req ${endpoint} | Token: "${token || 'none'}"`);
 
   const res = await fetch(`${API_URL}${endpoint}`, {
     ...options,
@@ -34,6 +31,9 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
 
   if (!res.ok) {
     if (res.status === 401) {
+      if (typeof window !== 'undefined') {
+        return []
+      }
       console.error(`[fetchWithAuth] 401 Unauthorized from Django for ${endpoint}`);
       throw new Error('Unauthorized')
     }
@@ -71,7 +71,8 @@ export async function getCostReports(): Promise<any[]> {
 }
 
 export async function getPendingApprovals(): Promise<any[]> {
-  return fetchWithAuth('/gate/approvals/')
+  const res = await fetchWithAuth('/gate/approvals/')
+  return Array.isArray(res) ? res : []
 }
 
 export async function getLatestTelemetry(): Promise<any[]> {

@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { Bell, AlertTriangle, Check, RefreshCw } from "lucide-react";
-import { getPendingApprovals } from "../../services/api";
+import { getPendingApprovals, getSimulationRuns } from "../../services/api";
 
 interface NotificationItem {
   id: string;
@@ -38,13 +38,9 @@ export default function HeaderNotifications() {
       }
 
       // 2. Fetch latest simulation runs to check for idle fallbacks
-      const token = document.cookie.match(/(^| )jwt=([^;]+)/)?.[2] || "";
-      const res = await fetch("http://127.0.0.1:8000/api/simulator/runs/", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const runs = await res.json();
-        const list = Array.isArray(runs) ? runs : runs?.data ?? [];
+      const runs = await getSimulationRuns().catch(() => []);
+      if (Array.isArray(runs)) {
+        const list = runs;
         
         // Find recent runs in last 120 seconds that had idle fallbacks
         const now = new Date().getTime();

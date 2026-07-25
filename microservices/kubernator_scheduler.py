@@ -54,7 +54,7 @@ def rank_nodes_for_workload(required_nodes, tier):
     return ranked[:required_nodes]
 
 def run_kubernator_scheduler():
-    print("☸️ [Kubernator Scheduler] Starting Control Plane Loop...")
+    print("[Kubernator Scheduler] Starting Control Plane Loop...")
     
     while True:
         try:
@@ -62,12 +62,12 @@ def run_kubernator_scheduler():
             pending_runs = SimulationRun.objects.filter(status='analyzing')
             
             for run in pending_runs:
-                print(f"☸️ [Kubernator] Scheduling Run {run.id} (Tier {run.selected_tier}, {run.allocated_nodes} nodes requested)")
+                print(f"[Kubernator] Scheduling Run {run.id} (Tier {run.selected_tier}, {run.allocated_nodes} nodes requested)")
                 
                 best_nodes = rank_nodes_for_workload(run.allocated_nodes, run.selected_tier)
                 
                 if len(best_nodes) < run.allocated_nodes:
-                    print(f"⚠️ [Kubernator] Insufficient healthy nodes for Run {run.id}. Triggering overload.")
+                    print(f"[Kubernator] WARNING: Insufficient healthy nodes for Run {run.id}. Triggering overload.")
                     run.status = 'completed'
                     run.verdict = 'overload'
                     run.save()
@@ -85,7 +85,7 @@ def run_kubernator_scheduler():
                 run.allocated_nodes_actual = len(best_nodes)
                 run.save()
                 
-                print(f"✅ [Kubernator] Assigned {run.id} to {best_nodes}")
+                print(f"[Kubernator] Assigned {run.id} to {best_nodes}")
 
             time.sleep(2)
         except Exception as e:

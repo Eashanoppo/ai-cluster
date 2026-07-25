@@ -21,7 +21,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 def run_anomaly_detection():
-    print("🚀 [ML Anomaly Engine] Starting Isolation Forest detection...")
+    print("[ML Anomaly Engine] Starting Isolation Forest detection...")
     
     while True:
         try:
@@ -58,7 +58,7 @@ def run_anomaly_detection():
                 
                 # If thermal runaway detected
                 if temp > 85.0:
-                    print(f"⚠️ [ML Anomaly Engine] Anomaly detected on {node}! Temp: {temp}C")
+                    print(f"[ML Anomaly Engine] WARNING: Anomaly detected on {node}! Temp: {temp}C")
                     
                     # Create Alert
                     Alert.objects.get_or_create(

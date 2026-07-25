@@ -32,8 +32,8 @@ def ray_worker_task(run_id, node_count, duration_minutes):
     return run_id
 
 def run_ray_engine():
-    print("🚀 [Ray Engine] Initializing Ray Cluster Head Node...")
-    print("🚀 [Ray Engine] 4 Workers connected and waiting for distributed jobs.")
+    print("[Ray Engine] Initializing Ray Cluster Head Node...")
+    print("[Ray Engine] 4 Workers connected and waiting for distributed jobs.")
     
     pool = multiprocessing.Pool(processes=4)
     active_jobs = {}
@@ -45,7 +45,7 @@ def run_ray_engine():
             
             for run in processing_runs:
                 if run.id not in active_jobs:
-                    print(f"🚀 [Ray Engine] Received scheduled job {run.id}. Dispatching to Ray Workers...")
+                    print(f"[Ray Engine] Received scheduled job {run.id}. Dispatching to Ray Workers...")
                     
                     # Dispatch to Ray worker pool asynchronously
                     result = pool.apply_async(
@@ -58,7 +58,7 @@ def run_ray_engine():
             completed = []
             for run_id, result in active_jobs.items():
                 if result.ready():
-                    print(f"🚀 [Ray Engine] Finished Job {run_id}. Updating Control Plane.")
+                    print(f"[Ray Engine] Finished Job {run_id}. Updating Control Plane.")
                     run = SimulationRun.objects.filter(id=run_id).first()
                     if run:
                         run.status = 'completed'

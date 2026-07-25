@@ -594,4 +594,4 @@ Use Mermaid diagrams extensively.
 
 Document every important architectural decision.
 
-The final result should feel like the official documentation of a production-grade AIOps platform rather than a student project.
+The final result should feel like the official documentation of a production-grade AIOps platform rather than a student project.why 
