@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telemetry-generator
+  namespace: simulation
+  labels:
+    app: telemetry
+    component: simulation
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: telemetry
+  template:
+    metadata:
+      labels:
+        app: telemetry
+    spec:
+      containers:
+      - name: telemetry-generator
+        image: custroconnect/telemetry-generator:latest
+        ports:
+        - containerPort: 8001
+        resources:
+          requests:
+            cpu: 250m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: telemetry-service
+  namespace: simulation
+spec:
+  selector:
+    app: telemetry
+  ports:
+    - protocol: TCP
+      port: 8001
+      targetPort: 8001

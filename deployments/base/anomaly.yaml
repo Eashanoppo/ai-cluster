@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anomaly-engine
+  namespace: ai
+  labels:
+    app: anomaly-detection
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: anomaly-detection
+  template:
+    metadata:
+      labels:
+        app: anomaly-detection
+    spec:
+      containers:
+      - name: anomaly-engine
+        image: custroconnect/anomaly-engine:latest
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: anomaly-service
+  namespace: ai
+spec:
+  selector:
+    app: anomaly-detection
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000

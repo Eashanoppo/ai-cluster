@@ -69,7 +69,7 @@ export default async function OldDashboard() {
             <Cpu className="text-text-primary w-8 h-8" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold font-serif tracking-tight">NeuronOps_ (Legacy)</h1>
+            <h1 className="text-3xl font-bold font-serif tracking-tight">ClustroConnect_ (Legacy)</h1>
             <p className="font-mono text-xs uppercase tracking-widest text-text-secondary">SYS.INTELLIGENCE.LAYER</p>
           </div>
         </div>

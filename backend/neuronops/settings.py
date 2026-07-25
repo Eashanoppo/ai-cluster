@@ -54,6 +54,8 @@ INSTALLED_APPS = [
     'gate',
     'drf_spectacular',
     'telemetry',
+    'simulator',
+    'cluster_infra',
 ]
 
 MIDDLEWARE = [
@@ -98,6 +100,16 @@ DATABASES = {
     )
 }
 
+# LocMemCache to protect the database from frontend polling DDOS
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'telemetry-cache',
+    }
+}
+if DATABASES['default']['ENGINE'] == 'django.db.backends.sqlite3':
+    DATABASES['default']['OPTIONS'] = {'timeout': 20}
+
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
@@ -140,7 +152,8 @@ STATIC_URL = 'static/'
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 
-CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
+CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000').split(',')
+CORS_ALLOW_ALL_ORIGINS = True  # For hackathon local demo stability
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -175,4 +188,11 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
 }
+
+# --- Simulator / Antigravity Settings ---
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
+
+# --- Media Files Settings ---
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 

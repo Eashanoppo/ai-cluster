@@ -7,7 +7,7 @@ import { askCopilot } from '../../actions/copilot';
 export function CopilotChat() {
   const [chatInput, setChatInput] = useState('');
   const [messages, setMessages] = useState([
-    { role: 'system', content: 'NeuronOps NL-Copilot active. All systems nominal.' }
+    { role: 'system', content: 'ClustroConnect NL-Copilot active. All systems nominal.' }
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [provider, setProvider] = useState('ollama');

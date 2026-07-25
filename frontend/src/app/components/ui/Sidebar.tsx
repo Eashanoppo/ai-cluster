@@ -15,7 +15,9 @@ import {
   ChevronRight,
   Settings,
   HelpCircle,
-  User
+  User,
+  History,
+  Database
 } from "lucide-react";
 import { logoutAction } from "../../actions/auth";
 import { cn } from "../../../lib/utils";
@@ -27,11 +29,12 @@ interface NavItem {
 }
 
 const mainNavItems: NavItem[] = [
-  { icon: <LayoutDashboard size={18} />, label: "Dashboard", href: "/" },
-  { icon: <Activity size={18} />, label: "Failure Alerts", href: "/sentinel" },
+  { icon: <LayoutDashboard size={18} />, label: "Mission Control", href: "/" },
+  { icon: <Cpu size={18} />, label: "Cluster Twin Engine", href: "/simulator" },
+  { icon: <Activity size={18} />, label: "Failure Intelligence", href: "/sentinel" },
   { icon: <ArrowRightLeft size={18} />, label: "Job Reallocations", href: "/scheduler" },
-  { icon: <DollarSign size={18} />, label: "Savings Manager", href: "/costwatch" },
-  { icon: <Lock size={18} />, label: "Task Approvals", href: "/gate" },
+  { icon: <DollarSign size={18} />, label: "Cost Intelligence", href: "/costwatch" },
+  { icon: <Lock size={18} />, label: "Action Approvals", href: "/gate" },
 ];
 
 interface SidebarProps {
@@ -52,13 +55,14 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
       {/* Sidebar Header */}
       <div className="h-16 border-b border-border flex items-center justify-between px-4">
         <div className={cn("flex items-center gap-2.5 overflow-hidden", isCollapsed && "justify-center w-full")}>
-          <div className="w-8 h-8 bg-primary flex items-center justify-center text-black font-bold flex-shrink-0">
-            <Cpu size={18} />
-          </div>
+          <img src="/OnlyLogoNoBG.png" alt="CustroConnect" className="w-8 h-8 object-contain" />
           {!isCollapsed && (
-            <span className="font-sans font-bold text-sm tracking-tight text-white truncate">
-              NeuronOps
-            </span>
+            <div className="flex items-center gap-3 px-2 py-1">
+              <Database className="w-6 h-6 text-amber-500 flex-shrink-0" />
+              <span className="text-xl font-black text-white tracking-tight uppercase">
+              CustroConnect
+              </span>
+            </div>
           )}
         </div>
         
@@ -145,6 +149,22 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           )}
         </Link>
 
+        {/* Legacy Dashboard (under Settings) */}
+        <Link
+          href="/oldfrontend"
+          className={cn(
+            "flex items-center gap-3 px-3 py-2 text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-850 rounded-md group relative"
+          )}
+        >
+          <History size={18} />
+          {!isCollapsed && <span>Legacy UI</span>}
+          {isCollapsed && (
+            <span className="absolute left-full ml-4 px-2 py-1 text-xs bg-zinc-950 border border-border text-white invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap pointer-events-none z-50">
+              Legacy UI
+            </span>
+          )}
+        </Link>
+
         {/* Logout */}
         <form action={logoutAction}>
           <button
@@ -174,7 +194,7 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           {!isCollapsed && (
             <div className="flex flex-col min-w-0">
               <span className="text-xs font-bold text-white truncate leading-none">admin</span>
-              <span className="text-[10px] text-zinc-500 truncate mt-1">admin@neuronops.io</span>
+              <span className="text-[10px] text-zinc-500 truncate mt-1">admin@clustroconnect.io</span>
             </div>
           )}
         </div>

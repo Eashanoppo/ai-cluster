@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neuronops-backend
+  labels:
+    app: neuronops
+    tier: backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: neuronops
+      tier: backend
+  template:
+    metadata:
+      labels:
+        app: neuronops
+        tier: backend
+    spec:
+      containers:
+      - name: django-api
+        image: clustroconnect/neuronops-backend:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secrets
+              key: database_url
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: neuronops-backend-svc
+spec:
+  selector:
+    app: neuronops
+    tier: backend
+  ports:
+  - port: 80
+    targetPort: 8000

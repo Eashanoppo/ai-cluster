@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'neuronops_django'
+    static_configs:
+      - targets: ['neuronops-backend-svc:8000']
+  
+  - job_name: 'dcgm_exporter'
+    static_configs:
+      - targets: ['dcgm-exporter-svc:9400']
+
+  - job_name: 'ray_cluster'
+    static_configs:
+      - targets: ['ray-head-svc:8265']

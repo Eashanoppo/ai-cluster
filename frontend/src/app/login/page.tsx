@@ -16,10 +16,8 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background font-sans text-text-primary selection:bg-primary selection:text-text-primary">
       <div className="card p-8 w-full max-w-md bg-surface border-border shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
         <div className="flex flex-col items-center mb-8 pb-6 border-b border-border">
-          <div className="w-16 h-16 border-2 border-text-primary bg-primary flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(17,24,39,1)] mb-4">
-            <Terminal className="text-text-primary w-8 h-8" />
-          </div>
-          <h1 className="text-3xl font-serif font-bold tracking-tight">NeuronOps_</h1>
+          <img src="/OnlyLogoNoBG.png" alt="ClustroConnect Logo" className="w-16 h-16 mb-4 object-contain" />
+          <h1 className="text-3xl font-serif font-bold tracking-tight">ClustroConnect_</h1>
           <p className="font-mono text-xs text-text-secondary uppercase mt-2 tracking-widest">SYS.AUTH.PORTAL</p>
         </div>
 

@@ -1,18 +1,18 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from pydantic import BaseModel, ValidationError, Field
 from typing import Optional
 from django.conf import settings
 from openai import OpenAI
 
 class CopilotQuerySchema(BaseModel):
-    query: str = Field(..., max_length=1000)
+    query: str = Field(..., max_length=10000)
     provider: Optional[str] = None
     model: Optional[str] = None
 
 class CopilotQueryView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request):
         try:
@@ -22,11 +22,12 @@ class CopilotQueryView(APIView):
             provider = validated_data.provider or getattr(settings, 'LLM_PROVIDER', 'ollama') or 'ollama'
             model = validated_data.model or getattr(settings, 'LLM_MODEL', 'llama3') or 'llama3'
         except ValidationError as e:
+            print("Validation error in CopilotQueryView:", e)
             return Response({
                 "success": False,
                 "error": {
                     "code": "VALIDATION_ERROR",
-                    "message": "Invalid input: query is required and must be a string."
+                    "message": f"Invalid input: {str(e)}"
                 }
             }, status=400)
 
@@ -36,6 +37,10 @@ class CopilotQueryView(APIView):
                 client = OpenAI(
                     base_url="https://openrouter.ai/api/v1",
                     api_key=settings.OPENROUTER_API_KEY,
+                    default_headers={
+                        "HTTP-Referer": "http://localhost:3000",
+                        "X-Title": "ClustroConnect Cluster AI",
+                    }
                 )
             else:
                 # Default to Ollama
@@ -48,7 +53,7 @@ class CopilotQueryView(APIView):
             response = client.chat.completions.create(
                 model=model,
                 messages=[
-                    {"role": "system", "content": "You are NeuronOps Copilot, an AI cluster management assistant. You analyze cluster telemetry, predict GPU failures, and schedule workloads. Give concise, operational responses."},
+                    {"role": "system", "content": "You are ClustroConnect Copilot, an AI cluster management assistant. You analyze cluster telemetry, predict GPU failures, and schedule workloads. Give concise, operational responses."},
                     {"role": "user", "content": query}
                 ],
                 max_tokens=200,
@@ -67,6 +72,6 @@ class CopilotQueryView(APIView):
                 "success": False,
                 "error": {
                     "code": "LLM_ERROR",
-                    "message": "LLM_UNAVAILABLE"
+                    "message": str(e)
                 }
             }, status=500)

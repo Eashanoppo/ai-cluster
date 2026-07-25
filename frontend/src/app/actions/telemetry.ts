@@ -21,3 +21,14 @@ export async function pollTelemetryHistory(nodeId: string): Promise<any[]> {
     return [];
   }
 }
+
+export async function pollTopology(): Promise<any> {
+  try {
+    const { getTopology } = await import('../services/api');
+    const data = await getTopology();
+    return data;
+  } catch (error) {
+    console.error("Failed to poll topology", error);
+    return null;
+  }
+}

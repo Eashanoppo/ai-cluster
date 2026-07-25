@@ -13,8 +13,15 @@ urlpatterns = [
     path('api/copilot/', include('copilot.urls')),
     path('api/gate/', include('gate.urls')),
     path('api/telemetry/', include('telemetry.urls')),
-    
+    path('api/simulator/', include('simulator.urls')),
+
     # OpenAPI Schema
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
 ]
+
+from django.conf import settings
+from django.conf.urls.static import static
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

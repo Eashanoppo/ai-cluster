@@ -18,7 +18,7 @@ export async function askCopilot(query: string, provider?: string, model?: strin
       return `Error: ${res.error.message}`;
     }
     
-    return "Unexpected response from NeuronOps AI.";
+    return "Unexpected response from ClustroConnect AI.";
   } catch (error: any) {
     console.error("Copilot Action Error:", error);
     return `Connection failed: ${error.message}`;
